@@ -2514,6 +2514,9 @@ if(onboardLogout){
     try{ await sbLogout(); location.reload(); } catch(e){ console.warn(e); }
   });
 }
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(console.warn);
+}
 
 // Boot on load
 document.addEventListener("DOMContentLoaded", bootSupabase);
