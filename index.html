@@ -792,6 +792,7 @@ async function sbSignUp(email, password){
   if(error) throw error;
   return data;
 }
+
 async function sbLogin(email, password){
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if(error) throw error;
@@ -800,6 +801,45 @@ async function sbLogin(email, password){
 async function sbLogout(){
   const { error } = await sb.auth.signOut();
   if(error) throw error;
+}
+function show(el){ if(!el) return; el.classList.remove("hidden"); el.classList.add("flex"); }
+function hide(el){ if(!el) return; el.classList.add("hidden"); }
+
+async function bootSupabase(){
+  try{
+    const { data } = await sb.auth.getSession();
+    const session = data.session;
+
+    if(!session){
+      show(authGate);
+      hide(onboardingGate);
+      return;
+    }
+
+    hide(authGate);
+    currentUserId = session.user.id;
+    currentEmail = session.user.email || "";
+
+    const { data: prof } = await sb.from("profiles").select("username").eq("id", currentUserId).maybeSingle();
+    currentUsername = prof?.username || "";
+    currentUser = currentUsername || (currentEmail ? currentEmail.split("@")[0] : "Trader");
+
+    let remote = null;
+    try { remote = await loadStateRemote(); } catch(e){ remote = null; }
+
+    if(remote){
+      state = Object.assign(structuredClone(defaultState), remote);
+      saveState(state);
+    } else {
+      state = loadState();
+      try { await saveStateRemote(state); } catch(e){}
+    }
+
+    renderAll();
+  } catch(e){
+    console.error(e);
+    show(authGate);
+  }
 }
 
 // App state is stored in Supabase table public.app_state as a single JSON blob per user.
@@ -2642,6 +2682,7 @@ if(typeof onboardLogout !== "undefined"){
 
 // Kick off Supabase session boot
 bootSupabase();
+document.addEventListener("DOMContentLoaded", bootSupabase);
 
 </script>
 </body>
