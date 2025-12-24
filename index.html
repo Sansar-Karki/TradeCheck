@@ -405,6 +405,12 @@
         <button class="top-tab px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm font-medium transition" data-view="daily">Daily Review</button>
         <button class="top-tab px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm font-medium transition" data-view="analytics">Analytics</button>
         <button class="top-tab px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition" data-view="settings">⚙️ Settings</button>
+
+        <!-- hidden legacy triggers (kept for existing listeners) -->
+        <button id="goalsBtn" class="hidden"></button>
+        <button id="dailyReviewBtn" class="hidden"></button>
+        <button id="settingsBtn" class="hidden"></button>
+
         <button id="logoutBtn" class="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm transition">Logout</button>
     </div>
     </div>
@@ -437,22 +443,215 @@
 
 
   <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-    <div id="viewCore" class="space-y-8">
+<div id="viewCore" class="space-y-8">
 
     <!-- Risk Dashboard Alert -->
     <div id="riskAlert" class="hidden rounded-2xl border px-6 py-4"></div>
 
-    
+    <div id="viewAnalytics" class="space-y-8 hidden">
+<!-- Hero Section -->
+    <section class="rounded-3xl border border-gray-800 glass p-8">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div>
+          <div id="greetingLine" class="text-3xl font-bold">Good morning</div>
+          <div id="subGreeting" class="text-sm text-gray-400 mt-2">Trade your plan, not your feelings.</div>
+          <div id="quoteLine" class="text-sm text-blue-400 mt-3 italic font-medium">—</div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="rounded-2xl border border-gray-800 gradient-blue p-5 min-w-[240px]">
+            <div class="text-xs text-gray-400 font-medium">Market open</div>
+            <div id="marketOpenLine" class="text-xl font-bold mt-1">—</div>
+            <div id="marketCountdown" class="text-xs text-gray-500 mt-2">—</div>
+          </div>
+          <div class="rounded-2xl border border-gray-800 gradient-amber p-5 min-w-[240px]">
+            <div class="text-xs text-gray-400 font-medium">Today's focus</div>
+            <div id="todayFocusLine" class="text-sm text-gray-200 mt-2 font-medium">Finish your Daily Review.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Management Dashboard -->
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+          <div class="text-xs text-gray-400 font-medium">Daily Loss Limit</div>
+          <div class="mt-3">
+            <div class="flex items-baseline gap-2">
+              <span id="dailyPnL" class="text-2xl font-bold">$0</span>
+              <span id="dailyPnLLimit" class="text-xs text-gray-500">/ $500</span>
+            </div>
+            <div class="risk-meter mt-3">
+              <div id="riskMeterFill" class="risk-meter-fill risk-low" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+          <div class="text-xs text-gray-400 font-medium">Trades Today</div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="tradesToday" class="text-2xl font-bold">0</span>
+            <span id="tradesLimit" class="text-xs text-gray-500">/ 5 max</span>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+          <div class="text-xs text-gray-400 font-medium">Current Streak</div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="currentStreak" class="text-2xl font-bold">0</span>
+            <span class="text-xs text-gray-500">PD days</span>
+            <span class="streak-fire text-xl ml-1">🔥</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Performance Dashboard -->
+    <section class="rounded-3xl border border-gray-800 glass p-8">
+      <div class="flex items-start justify-between gap-4 flex-col lg:flex-row">
+        <div>
+          <div class="text-2xl font-bold">Your Dashboard</div>
+          <div class="text-sm text-gray-400 mt-1">Streaks, weekly summary, and your R-curve.</div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="rounded-2xl gradient-blue border border-blue-500/20 p-6">
+          <div class="text-xs text-blue-300 font-medium">Daily Review Streak</div>
+          <div id="streakReview" class="stat-number mt-3">0</div>
+          <div class="text-xs text-gray-400 mt-2">Consecutive days you saved a review.</div>
+        </div>
+        <div class="rounded-2xl gradient-green border border-emerald-500/20 p-6">
+          <div class="text-xs text-emerald-300 font-medium">Disciplined Streak</div>
+          <div id="streakDisciplined" class="stat-number mt-3">0 <span class="streak-fire text-2xl">🔥</span></div>
+          <div class="text-xs text-gray-400 mt-2">Consecutive PD days (profitable + disciplined).</div>
+        </div>
+        <div class="rounded-2xl gradient-amber border border-amber-500/20 p-6">
+          <div class="text-xs text-amber-300 font-medium">This Week's Avg R</div>
+          <div id="weekAvgR" class="stat-number mt-3">—</div>
+          <div id="weekMini" class="text-xs text-gray-400 mt-2">—</div>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="lg:col-span-1 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
+          <div class="text-sm font-bold">Weekly Summary</div>
+          <div id="weeklySummary" class="text-sm text-gray-300 mt-4 leading-relaxed">—</div>
+        </div>
+        <div class="lg:col-span-2 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
+          <div class="flex items-center justify-between">
+            <div class="text-sm font-bold">P&L Curve (R)</div>
+            <div class="text-xs text-gray-500">Updates as you log trades</div>
+          </div>
+          <div class="mt-4">
+            <canvas id="rChart" height="110"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mistake Trend Analysis -->
+    <section class="rounded-3xl border border-gray-800 glass p-8">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <div class="text-2xl font-bold">Mistake Trend Analysis</div>
+          <div class="text-sm text-gray-400 mt-1">Track your emotional patterns over time</div>
+        </div>
+      </div>
+      <div class="mt-6 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
+        <canvas id="mistakeTrendChart" height="80"></canvas>
+      </div>
+    </section>
+
+    <!-- Stats Grid -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="card rounded-3xl glass border border-gray-800 p-6">
+        <div class="text-sm text-gray-400 font-medium">Total Trades (filtered)</div>
+        <div id="statTotalTrades" class="stat-number mt-3">0</div>
+      </div>
+      <div class="card rounded-3xl glass border border-gray-800 p-6">
+        <div class="text-sm text-gray-400 font-medium">Avg Post Score (weighted)</div>
+        <div id="statAvgScore" class="stat-number mt-3">0%</div>
+      </div>
+      <div class="card rounded-3xl glass border border-gray-800 p-6">
+        <div class="text-sm text-gray-400 font-medium">Win Rate (filtered)</div>
+        <div id="statWinRate" class="stat-number mt-3">0%</div>
+      </div>
+      <div class="card rounded-3xl glass border border-gray-800 p-6">
+        <div class="text-sm text-gray-400 font-medium">Avg Realized R (filtered)</div>
+        <div id="statAvgR" class="stat-number mt-3">0.00</div>
+      </div>
+    </section>
+
+    <!-- Analytics Filters -->
+    <section class="card rounded-3xl glass border border-gray-800 p-8">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <div class="text-2xl font-bold">Analytics Filters</div>
+          <div class="text-sm text-gray-400 mt-1">Slice by strategy/session/day/setup. The truth hurts, but it's cheaper.</div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div>
+            <label class="text-xs text-gray-400 font-medium">Strategy</label>
+            <select id="filterStrategy" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
+              <option value="ALL">All strategies</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 font-medium">Setup</label>
+            <select id="filterSetup" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
+              <option value="ALL">All setups</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 font-medium">Session</label>
+            <select id="filterSession" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
+              <option value="ALL">All</option>
+              <option value="London">London</option>
+              <option value="NY">NY</option>
+              <option value="ORB">ORB</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs text-gray-400 font-medium">Day of week</label>
+            <select id="filterDOW" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
+              <option value="ALL">All</option>
+              <option value="Mon">Mon</option>
+              <option value="Tue">Tue</option>
+              <option value="Wed">Wed</option>
+              <option value="Thu">Thu</option>
+              <option value="Fri">Fri</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Score Distribution (A/B/C)</div>
+            <div class="text-xs text-gray-400">post score</div>
+          </div>
+          <div class="mt-4 space-y-3" id="distBars"></div>
+        </div>
+
+        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">Avg R by Grade</div>
+            <div class="text-xs text-gray-400">completed reviews</div>
+          </div>
+          <div class="mt-4 space-y-3" id="rBars"></div>
+        </div>
+      </div>
+
+      <!-- Setup Performance -->
+      <div class="mt-6 rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
+        <div class="font-semibold mb-4">Performance by Setup</div>
+        <div id="setupPerformance" class="space-y-3"></div>
+      </div>
+    </section>
 
     
+</div>
 
-    
-
-    
-
-    
-
-    <!-- Strategy Builder + Rule Locks -->
+<!-- Strategy Builder + Rule Locks -->
     <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-2 card rounded-3xl glass border border-gray-800 p-8">
         <div class="flex items-center justify-between">
@@ -629,220 +828,16 @@
       </div>
     </section>
   
-    </div>
+</div>
+</main>
 
-    <div id="viewGoals" class="space-y-8 hidden">
+  <!-- ALL MODALS START HERE -->
+
+  <!-- Goals Modal -->
+  <div id="modalGoals" class="fixed inset-0 hidden items-center justify-center bg-black/60 p-4 z-50">
+    <div class="w-full max-w-5xl rounded-3xl glass p-8 max-h-[90vh] overflow-y-auto modal-enter">
       <div class="flex items-start justify-between">
         <div>
-          <div class="text-2xl font-bold">Goals & Milestones 🎯</div>
-          <div class="text-sm text-gray-400 mt-1">Track your progress and celebrate wins
-    </div>
-
-    <div id="viewDaily" class="space-y-8 hidden">
-      <div class="flex items-start justify-between">
-        <div>
-          <div class="text-2xl font-bold">Daily Review</div>
-          <div id="dailySub" class="text-sm text-gray-400 mt-1">A 5-minute truth session. Your excuses can wait.
-    </div>
-
-    <div id="viewAnalytics" class="space-y-8 hidden">
-<!-- Hero Section -->
-    <section class="rounded-3xl border border-gray-800 glass p-8">
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div>
-          <div id="greetingLine" class="text-3xl font-bold">Good morning</div>
-          <div id="subGreeting" class="text-sm text-gray-400 mt-2">Trade your plan, not your feelings.</div>
-          <div id="quoteLine" class="text-sm text-blue-400 mt-3 italic font-medium">—</div>
-        </div>
-        <div class="flex flex-col sm:flex-row gap-4">
-          <div class="rounded-2xl border border-gray-800 gradient-blue p-5 min-w-[240px]">
-            <div class="text-xs text-gray-400 font-medium">Market open</div>
-            <div id="marketOpenLine" class="text-xl font-bold mt-1">—</div>
-            <div id="marketCountdown" class="text-xs text-gray-500 mt-2">—</div>
-          </div>
-          <div class="rounded-2xl border border-gray-800 gradient-amber p-5 min-w-[240px]">
-            <div class="text-xs text-gray-400 font-medium">Today's focus</div>
-            <div id="todayFocusLine" class="text-sm text-gray-200 mt-2 font-medium">Finish your Daily Review.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Risk Management Dashboard -->
-      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-          <div class="text-xs text-gray-400 font-medium">Daily Loss Limit</div>
-          <div class="mt-3">
-            <div class="flex items-baseline gap-2">
-              <span id="dailyPnL" class="text-2xl font-bold">$0</span>
-              <span id="dailyPnLLimit" class="text-xs text-gray-500">/ $500</span>
-            </div>
-            <div class="risk-meter mt-3">
-              <div id="riskMeterFill" class="risk-meter-fill risk-low" style="width: 0%"></div>
-            </div>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-          <div class="text-xs text-gray-400 font-medium">Trades Today</div>
-          <div class="mt-3 flex items-baseline gap-2">
-            <span id="tradesToday" class="text-2xl font-bold">0</span>
-            <span id="tradesLimit" class="text-xs text-gray-500">/ 5 max</span>
-          </div>
-        </div>
-        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-          <div class="text-xs text-gray-400 font-medium">Current Streak</div>
-          <div class="mt-3 flex items-baseline gap-2">
-            <span id="currentStreak" class="text-2xl font-bold">0</span>
-            <span class="text-xs text-gray-500">PD days</span>
-            <span class="streak-fire text-xl ml-1">🔥</span>
-          </div>
-        </div>
-      </div>
-    </section>
-<!-- Performance Dashboard -->
-    <section class="rounded-3xl border border-gray-800 glass p-8">
-      <div class="flex items-start justify-between gap-4 flex-col lg:flex-row">
-        <div>
-          <div class="text-2xl font-bold">Your Dashboard</div>
-          <div class="text-sm text-gray-400 mt-1">Streaks, weekly summary, and your R-curve.</div>
-        </div>
-      </div>
-
-      <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="rounded-2xl gradient-blue border border-blue-500/20 p-6">
-          <div class="text-xs text-blue-300 font-medium">Daily Review Streak</div>
-          <div id="streakReview" class="stat-number mt-3">0</div>
-          <div class="text-xs text-gray-400 mt-2">Consecutive days you saved a review.</div>
-        </div>
-        <div class="rounded-2xl gradient-green border border-emerald-500/20 p-6">
-          <div class="text-xs text-emerald-300 font-medium">Disciplined Streak</div>
-          <div id="streakDisciplined" class="stat-number mt-3">0 <span class="streak-fire text-2xl">🔥</span></div>
-          <div class="text-xs text-gray-400 mt-2">Consecutive PD days (profitable + disciplined).</div>
-        </div>
-        <div class="rounded-2xl gradient-amber border border-amber-500/20 p-6">
-          <div class="text-xs text-amber-300 font-medium">This Week's Avg R</div>
-          <div id="weekAvgR" class="stat-number mt-3">—</div>
-          <div id="weekMini" class="text-xs text-gray-400 mt-2">—</div>
-        </div>
-      </div>
-
-      <div class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div class="lg:col-span-1 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
-          <div class="text-sm font-bold">Weekly Summary</div>
-          <div id="weeklySummary" class="text-sm text-gray-300 mt-4 leading-relaxed">—</div>
-        </div>
-        <div class="lg:col-span-2 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
-          <div class="flex items-center justify-between">
-            <div class="text-sm font-bold">P&L Curve (R)</div>
-            <div class="text-xs text-gray-500">Updates as you log trades</div>
-          </div>
-          <div class="mt-4">
-            <canvas id="rChart" height="110"></canvas>
-          </div>
-        </div>
-      </div>
-    </section>
-<!-- Mistake Trend Analysis -->
-    <section class="rounded-3xl border border-gray-800 glass p-8">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <div class="text-2xl font-bold">Mistake Trend Analysis</div>
-          <div class="text-sm text-gray-400 mt-1">Track your emotional patterns over time</div>
-        </div>
-      </div>
-      <div class="mt-6 rounded-2xl border border-gray-800 bg-gray-950/50 p-6">
-        <canvas id="mistakeTrendChart" height="80"></canvas>
-      </div>
-    </section>
-<!-- Stats Grid -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="card rounded-3xl glass border border-gray-800 p-6">
-        <div class="text-sm text-gray-400 font-medium">Total Trades (filtered)</div>
-        <div id="statTotalTrades" class="stat-number mt-3">0</div>
-      </div>
-      <div class="card rounded-3xl glass border border-gray-800 p-6">
-        <div class="text-sm text-gray-400 font-medium">Avg Post Score (weighted)</div>
-        <div id="statAvgScore" class="stat-number mt-3">0%</div>
-      </div>
-      <div class="card rounded-3xl glass border border-gray-800 p-6">
-        <div class="text-sm text-gray-400 font-medium">Win Rate (filtered)</div>
-        <div id="statWinRate" class="stat-number mt-3">0%</div>
-      </div>
-      <div class="card rounded-3xl glass border border-gray-800 p-6">
-        <div class="text-sm text-gray-400 font-medium">Avg Realized R (filtered)</div>
-        <div id="statAvgR" class="stat-number mt-3">0.00</div>
-      </div>
-    </section>
-<!-- Analytics Filters -->
-    <section class="card rounded-3xl glass border border-gray-800 p-8">
-      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <div class="text-2xl font-bold">Analytics Filters</div>
-          <div class="text-sm text-gray-400 mt-1">Slice by strategy/session/day/setup. The truth hurts, but it's cheaper.</div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <div>
-            <label class="text-xs text-gray-400 font-medium">Strategy</label>
-            <select id="filterStrategy" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
-              <option value="ALL">All strategies</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-medium">Setup</label>
-            <select id="filterSetup" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
-              <option value="ALL">All setups</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-medium">Session</label>
-            <select id="filterSession" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
-              <option value="ALL">All</option>
-              <option value="London">London</option>
-              <option value="NY">NY</option>
-              <option value="ORB">ORB</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-xs text-gray-400 font-medium">Day of week</label>
-            <select id="filterDOW" class="mt-2 w-full bg-gray-950 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 transition">
-              <option value="ALL">All</option>
-              <option value="Mon">Mon</option>
-              <option value="Tue">Tue</option>
-              <option value="Wed">Wed</option>
-              <option value="Thu">Thu</option>
-              <option value="Fri">Fri</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">Score Distribution (A/B/C)</div>
-            <div class="text-xs text-gray-400">post score</div>
-          </div>
-          <div class="mt-4 space-y-3" id="distBars"></div>
-        </div>
-
-        <div class="rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">Avg R by Grade</div>
-            <div class="text-xs text-gray-400">completed reviews</div>
-          </div>
-          <div class="mt-4 space-y-3" id="rBars"></div>
-        </div>
-      </div>
-
-      <!-- Setup Performance -->
-      <div class="mt-6 rounded-2xl border border-gray-800 bg-gray-950/50 p-5">
-        <div class="font-semibold mb-4">Performance by Setup</div>
-        <div id="setupPerformance" class="space-y-3"></div>
-      </div>
-    </section>
-    </div>
-
-    <<!-- modalGoals removed (moved to viewGoals) -->
           <div class="text-2xl font-bold">Goals & Milestones 🎯</div>
           <div class="text-sm text-gray-400 mt-1">Track your progress and celebrate wins</div>
         </div>
@@ -911,7 +906,13 @@
   </div>
 
   <!-- Settings Modal -->
-  <!-- modalSettings removed (moved to viewSettings) -->
+  <div id="modalSettings" class="fixed inset-0 hidden items-center justify-center bg-black/60 p-4 z-50">
+    <div class="w-full max-w-3xl rounded-3xl glass p-8 max-h-[90vh] overflow-y-auto modal-enter">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-2xl font-bold">Settings</div>
+          <div class="text-sm text-gray-400 mt-1">Risk limits, notifications & accountability</div>
+        </div>
         <button id="settingsClose" class="text-gray-300 hover:text-white text-2xl transition">✕</button>
       </div>
 
@@ -1135,7 +1136,21 @@
               <button id="postCancel" class="px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-sm font-medium transition">Cancel</button>
             </div>
 
-            <div class="text-xs text-<!-- modalDaily removed (moved to viewDaily) -->    <div class="text-2xl font-bold">Daily Review</div>
+            <div class="text-xs text-gray-500">
+              Post review locks 24 hours after you save it.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Review Modal -->
+  <div id="modalDaily" class="fixed inset-0 hidden items-center justify-center bg-black/60 p-4 z-50">
+    <div class="w-full max-w-5xl rounded-3xl glass p-8 max-h-[90vh] overflow-y-auto modal-enter">
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-2xl font-bold">Daily Review</div>
           <div id="dailySub" class="text-sm text-gray-400 mt-1">A 5-minute truth session. Your excuses can wait.</div>
         </div>
         <button id="dailyClose" class="text-gray-300 hover:text-white text-2xl transition">✕</button>
@@ -2981,12 +2996,12 @@ goalsClose.addEventListener("click", () => hide(modalGoals));
 // =====================================================================
 exportBtn.addEventListener("click", () => show(modalExport));
 
-(document.getElementById("\1") && document.getElementById("\1").addEventListener)("click", () => {
+document.getElementById("exportAllData").addEventListener("click", () => {
   exportAllDataCSV();
   hide(modalExport);
 });
 
-(document.getElementById("\1") && document.getElementById("\1").addEventListener)("click", () => {
+document.getElementById("exportReport").addEventListener("click", () => {
   exportReport();
   hide(modalExport);
 });
@@ -3420,36 +3435,40 @@ if ("serviceWorker" in navigator) {
 document.addEventListener("DOMContentLoaded", bootSupabase);
 </script>
 <script>
-  // -----------------------------
-  // Simple view tabs (Core / Goals / Daily / Analytics / Settings)
-  // -----------------------------
-  function setAppView(v){
-    const ids = ["core","goals","daily","analytics","settings"];
-    ids.forEach(id=>{
-      const el = document.getElementById("view"+id.charAt(0).toUpperCase()+id.slice(1));
-      if(el) el.classList.toggle("hidden", id !== v);
-    });
-    // desktop
+  function showModal(id){
+    const m = document.getElementById(id);
+    if(!m) return;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+  }
+  function setView(v){
+    const core = document.getElementById("viewCore");
+    const ana  = document.getElementById("viewAnalytics");
+    if(core) core.classList.toggle("hidden", v !== "core");
+    if(ana)  ana.classList.toggle("hidden", v !== "analytics");
+
+    // active styles
     document.querySelectorAll(".top-tab").forEach(btn=>{
-      const isActive = (btn.getAttribute("data-view") === v);
-      btn.classList.toggle("btn-primary", isActive);
-      btn.classList.toggle("bg-gray-800", !isActive);
-      btn.classList.toggle("hover:bg-gray-700", !isActive);
+      const on = (btn.getAttribute("data-view") === v);
+      btn.classList.toggle("btn-primary", on);
+      btn.classList.toggle("bg-gray-800", !on);
+      btn.classList.toggle("hover:bg-gray-700", !on);
     });
-    // mobile
     document.querySelectorAll(".mobile-nav-btn").forEach(btn=>{
       btn.classList.toggle("active", btn.getAttribute("data-view") === v);
     });
-    // keep user at top
     window.scrollTo({top:0, behavior:"smooth"});
   }
 
   (function wireTabs(){
-    const tabButtons = document.querySelectorAll("[data-view]");
-    tabButtons.forEach(btn=>{
-      btn.addEventListener("click", (e)=>{
+    document.querySelectorAll("[data-view]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
         const v = btn.getAttribute("data-view");
-        if(["core","goals","daily","analytics","settings"].includes(v)) setAppView(v);
+        if(v === "core") return setView("core");
+        if(v === "analytics") return setView("analytics");
+        if(v === "goals") return showModal("modalGoals");
+        if(v === "daily") return showModal("modalDaily");
+        if(v === "settings") return showModal("modalSettings");
       });
     });
   })();
