@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>TradeCheck — Discipline OS</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    html, body { height: 100%; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+    .sheet { backdrop-filter: blur(10px); }
+    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .ring-soft { box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset; }
+    .tap { -webkit-tap-highlight-color: transparent; }
+    .navbtn.active { background: rgba(255,255,255,.08); }
+    .chip { border: 1px solid rgba(255,255,255,.10); }
+    .muted { color: rgba(255,255,255,.72); }
+    .muted2 { color: rgba(255,255,255,.55); }
+    .hair { border-color: rgba(255,255,255,.10); }
+  </style>
+
+  <script>
+    // Tailwind config (subtle, single-accent)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { accent: { DEFAULT: "#60a5fa" } }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100">
+
+  <!-- AUTH GATE -->
+  <div id="authGate" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-5">
+      <div class="w-full max-w-md rounded-3xl bg-zinc-900/90 ring-soft shadow-soft p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted2">TradeCheck</div>
+            <div class="text-2xl font-semibold mt-1">Sign in</div>
+            <div class="text-sm muted2 mt-1">Your data syncs via Supabase.</div>
+          </div>
+          
+              <div class="text-sm muted2" id="riskMeta">Not set</div>
+            </div>
+            <div class="text-sm muted2">▾</div>
+          </summary>
+
+          <div class="mt-4 grid sm:grid-cols-3 gap-3">
+            
+<div class="rounded-2xl ring-soft bg-white/5 p-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <div class="text-sm font-semibold">Goals</div>
+    </div>
+    <button id="btnAddGoal" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-sm">Add</button>
+  </div>
+  <div class="mt-3 flex gap-2">
+    <input id="goalInput" class="flex-1 px-3 py-2 rounded-xl bg-black/30 ring-soft outline-none text-sm" placeholder="Write a goal (ex: Follow plan, no revenge trades)"/>
+  </div>
+  <div id="goalsList" class="mt-3 space-y-2"></div>
+</div>
+
+              <div class="text-sm muted2">Earned by behavior, not vibes.</div>
+            </div>
+          </div>
+          <div class="mt-4 grid sm:grid-cols-2 gap-3" id="achievements"></div>
+        </div>
+      </section>
+
+      <!-- REVIEW -->
+      <section id="viewReview" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2">Turn trades into lessons.</div>
+          <div class="text-2xl font-semibold mt-1">Post-trade review</div>
+
+          <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold" id="reviewHeadline">No trades yet</div>
+                <div class="text-sm muted2" id="reviewSub">Log a trade in Core.</div>
+              </div>
+              <button id="btnOpenReview" class="tap px-3 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold disabled:opacity-40" disabled>Review</button>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-2xl bg-white/3 ring-soft p-5">
+            <div class="text-sm font-semibold">Recent trades</div>
+            <div class="text-sm muted2">Tap to review or edit.</div>
+            <div class="mt-4 space-y-3" id="reviewTradeList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INSIGHTS -->
+      <section id="viewInsights" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2">Reflection, not obsession.</div>
+          <div class="text-2xl font-semibold mt-1">Insights</div>
+
+          <div class="mt-4 grid lg:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 lg:col-span-2">
+              <div class="text-sm font-semibold">R curve</div>
+              <div class="text-sm muted2">Cumulative R across reviewed trades.</div>
+              <div class="mt-4"><canvas id="chartR" height="120"></canvas></div>
+            </div>
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Discipline</div>
+              <div class="text-sm muted2">A-grade share this week.</div>
+              <div class="mt-4 text-4xl font-semibold" id="discPct">0%</div>
+              <div class="mt-2 text-sm muted2" id="discMeta">No data yet</div>
+            </div>
+          </div>
+
+          <div class="grid lg:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 lg:col-span-2">
+              <div class="text-sm font-semibold">Top mistake</div>
+              <div class="text-sm muted2">Most common tag in last 30 days.</div>
+              <div class="mt-4 text-xl font-semibold" id="topMistake">None</div>
+              <div class="mt-1 text-sm muted2" id="topMistakeMeta"></div>
+            </div>
+
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Quick stats</div>
+              <div class="mt-3 space-y-2 text-sm">
+                <div class="flex justify-between"><span class="muted2">Trades</span><span id="statTrades">0</span></div>
+                <div class="flex justify-between"><span class="muted2">Reviewed</span><span id="statReviewed">0</span></div>
+                <div class="flex justify-between"><span class="muted2">Avg R</span><span id="statAvgR">0.00</span></div>
+                <div class="flex justify-between"><span class="muted2">Review rate</span><span id="statReviewRate">0%</span></div>
+              </div>
+            </div>
+          </div>
+
+          <details class="rounded-3xl bg-white/3 ring-soft p-5">
+            <summary class="cursor-pointer list-none flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Refine</div>
+                <div class="text-sm muted2">Optional filters (keep it simple).</div>
+              </div>
+              <div class="text-sm muted2">▾</div>
+            </summary>
+            <div class="mt-4 grid sm:grid-cols-3 gap-3">
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Strategy</div>
+                <select id="fltStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+              </div>
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Last N days</div>
+                <input id="fltDays" type="number" value="30" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+              </div>
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Min grade</div>
+                <select id="fltGrade" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3 flex gap-3">
+              <button id="btnApplyFilters" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Apply</button>
+              <button id="btnResetFilters" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Reset</button>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="viewSettings" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2">Keep it boring. Boring works.</div>
+          <div class="text-2xl font-semibold mt-1">Settings</div>
+
+          <div class="mt-5 grid lg:grid-cols-2 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Profile</div>
+              <div class="mt-3">
+                <div class="text-xs muted2">Display name</div>
+                <input id="setName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., Bipul" />
+              </div>
+              <div class="mt-3 flex gap-3">
+                <button id="btnLogout" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Logout</button>
+                <button id="btnSaveProfile" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Save</button>
+                <div id="profileSaved" class="text-sm muted2 self-center"></div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Notifications</div>
+              <div class="text-sm muted2 mt-1">In-app reminders; browser notifications optional.</div>
+              <label class="mt-3 flex items-center gap-2 text-sm">
+                <input id="setNotifDaily" type="checkbox" class="accent-accent" />
+                <span class="muted">Remind me to complete Daily Review</span>
+              </label>
+              <label class="mt-2 flex items-center gap-2 text-sm">
+                <input id="setNotifRisk" type="checkbox" class="accent-accent" />
+                <span class="muted">Warn when near daily loss limit</span>
+              </label>
+              <div class="mt-3 flex gap-3">
+                <button id="btnEnableBrowserNotif" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Enable browser notifications</button>
+                <div id="notifStatus" class="text-sm muted2 self-center"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-white/3 ring-soft p-5">
+            <div class="text-sm font-semibold">Data</div>
+            <div class="text-sm muted2">Synced to Supabase when logged in. Local cache is kept for speed/offline.</div>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button id="btnExport" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Export JSON</button>
+              <label class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium cursor-pointer">
+                Import JSON
+                <input id="importFile" type="file" accept="application/json" class="hidden" />
+              </label>
+              <button id="btnResetAll" class="tap px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold">Reset all data</button>
+            </div>
+            <div id="dataMsg" class="text-sm muted2 mt-2"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="safe-bottom fixed bottom-0 left-0 right-0 bg-zinc-950/80 sheet border-t hair">
+      <div class="max-w-4xl mx-auto px-4 py-2 grid grid-cols-5 gap-2">
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1 active" data-tab="core">
+          <span class="text-base">✓</span><span>Home</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="goals">
+          <span class="text-base">🎯</span><span>Goals</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="review">
+          <span class="text-base">📝</span><span>Review</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="insights">
+          <span class="text-base">📈</span><span>Insights</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="settings">
+          <span class="text-base">⚙️</span><span>Settings</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Sheets -->
+  <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/60 z-40"></div>
+
+  <!-- Pre-trade Checklist Sheet -->
+  <div id="sheetChecklist" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Pre-trade checklist</div>
+            <div class="text-lg font-semibold">Decide like a machine.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="ckStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence (0–100)</div>
+            <input id="ckConfidence" type="number" min="0" max="100" value="70" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Score</div>
+              <div class="text-sm muted2">Based on rule weights.</div>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-semibold" id="ckScore">0%</div>
+              <div class="text-sm muted2" id="ckGrade">Grade: D</div>
+            </div>
+          </div>
+          <div class="mt-3 h-2 rounded-full bg-white/5 overflow-hidden">
+            <div id="ckBar" class="h-full bg-accent/60" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="text-sm font-semibold">Rules</div>
+          <div class="text-sm muted2">Answer honestly. The market won’t.</div>
+          <div class="mt-3 space-y-2 max-h-56 overflow-auto pr-1" id="ckRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnProceedTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">
+            Proceed to log trade
+          </button>
+          <div class="text-sm muted2 self-center" id="ckHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Trade Sheet -->
+  <div id="sheetTrade" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Trade intent</div>
+            <div class="text-lg font-semibold">Log fast. Execute clean.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="tStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Symbol</div>
+            <input id="tSymbol" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., NQ, AAPL" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Setup</div>
+            <input id="tSetup" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., ORB, Reversal" />
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Session</div>
+            <select id="tSession" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+              <option>Pre-market</option>
+              <option selected>Regular</option>
+              <option>After-hours</option>
+            </select>
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Risk ($)</div>
+            <input id="tRisk" type="number" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., 200" />
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence</div>
+            <input id="tConfidence" type="number" min="0" max="100" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">Notes (optional)</div>
+            <textarea id="tNotes" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="What must be true for this trade to be valid?"></textarea>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Trade screenshots <span class="text-xs muted2">(required)</span></div>
+              
+            </div>
+          </div>
+          <div class="mt-3">
+            <input id="tImages" type="file" accept="image/*" multiple class="w-full text-sm" />
+            <div class="text-xs muted2 mt-2">Tip: upload your entry/exit chart. You can add multiple.</div>
+          </div>
+          <div id="tImgPreview" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">Checklist score</div>
+            <div class="text-sm muted2" id="tScoreMeta">Not run yet</div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-semibold" id="tScore">—</div>
+            <div class="text-sm muted2" id="tGrade">Grade: —</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save trade</button>
+          <div id="tradeHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Sheet -->
+  <div id="sheetReview" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Post-trade review</div>
+            <div class="text-lg font-semibold" id="rvTitle">Trade</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Outcome</div>
+            <select id="rvOutcome" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+              <option value="win">Win</option>
+              <option value="loss">Loss</option>
+              <option value="breakeven">Breakeven</option>
+            </select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Realized R</div>
+            <input id="rvR" type="number" step="0.01" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., 1.25" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Mistakes (tap to toggle)</div>
+          
+          <div class="mt-3 flex flex-wrap gap-2" id="rvMistakes"></div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">One-sentence lesson</div>
+          <div class="text-sm muted2">What will you do differently next time?</div>
+          <textarea id="rvLesson" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: If VWAP is in front of me, I pass the breakout."></textarea>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Screenshots</div>
+          <div class="text-sm muted2">Tap to open in a new tab.</div>
+          <div id="rvImgs" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveReview" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save review</button>
+          <div id="rvHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Strategy Sheet -->
+  <div id="sheetStrategy" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Strategy</div>
+            <div class="text-lg font-semibold">Rules + weights</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">Strategy name</div>
+            <input id="stName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., ORB + VWAP filter" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Rules</div>
+              <div class="text-sm muted2">Each rule has a weight (importance).</div>
+            </div>
+            <button id="btnAddRule" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Add rule</button>
+          </div>
+          <div class="mt-3 space-y-2" id="stRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveStrategy" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save strategy</button>
+          <div id="stHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Review Sheet -->
+  <div id="sheetDaily" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Daily Review</div>
+            <div class="text-lg font-semibold">Close the loop.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">How was your execution?</div>
+          <div class="text-sm muted2">Be brief. Be honest.</div>
+          <textarea id="drText" rows="3" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: Waited for A setups. One revenge impulse, stopped early."></textarea>
+          <div class="mt-3 flex items-center justify-between">
+            <div class="text-sm muted2" id="drMeta">Today</div>
+            <button id="btnSaveDaily" class="tap px-4 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save</button>
+          </div>
+          <div id="drHint" class="text-sm muted2 mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Light confetti (simple) -->
+  <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50">
+    <div class="rounded-2xl bg-zinc-900/90 ring-soft shadow-soft px-4 py-3 text-sm">
+      <span id="toastText">Saved</span>
+    </div>
+  </div>
+
+  <script>
+    
+    // -----------------------------
+    // Supabase + Storage (local cache + remote sync)
+    // -----------------------------
+    const SUPABASE_URL = "https://hfnpqamhtxhhsrwmngtv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_2im62kUUfZ_WLgaHuNmP7w_vFsuE0QV";
+    const STORAGE_BUCKET = "trade-screens"; // Supabase Storage bucket name
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUserId = null;
+    let currentEmail = "";
+
+    const todayISO = () => (new Date()).toISOString().slice(0,10);
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+    const defaults = {
+      profile: { name: "" },
+      risk: { dailyLoss: "", maxTrades: "", hardStop: true },
+      notifs: { daily: true, risk: true, browser: false },
+      strategies: [],
+      trades: [],
+      dailyReviews: {},
+      achievements: {}
+    };
+
+    const getLSKey = () => currentUserId ? `tradecheck.v3_${currentUserId}` : `tradecheck.v3_guest`;
+
+    function loadLocal(){
+      try{
+        const raw = localStorage.getItem(getLSKey());
+        if(!raw) return structuredClone(defaults);
+        const obj = JSON.parse(raw);
+        return { ...structuredClone(defaults), ...obj };
+      }catch(e){
+        return structuredClone(defaults);
+      }
+    }
+    function saveLocal(state){
+      localStorage.setItem(getLSKey(), JSON.stringify(state));
+    }
+
+    async function loadRemote(){
+      if(!currentUserId) return null;
+      const { data, error } = await sb.from("app_state").select("state").eq("user_id", currentUserId).maybeSingle();
+      if(error) throw error;
+      return data?.state || null;
+    }
+    async function saveRemote(state){
+      if(!currentUserId) return;
+      const payload = { user_id: currentUserId, state, updated_at: new Date().toISOString() };
+      const { error } = await sb.from("app_state").upsert(payload);
+      if(error) throw error;
+    }
+
+    let _remoteSaveTimer = null;
+    function saveSmart(state){
+      saveLocal(state);
+      if(!currentUserId) return;
+      clearTimeout(_remoteSaveTimer);
+      _remoteSaveTimer = setTimeout(async ()=>{
+        try{ await saveRemote(state); }catch(e){ console.warn("Remote save failed:", e); }
+      }, 500);
+    }
+
+    let S = structuredClone(defaults);
+
+    // -----------------------------
+    // UI helpers
+    // -----------------------------
+    const $ = (id) => document.getElementById(id);
+    function toast(msg){
+      $("toastText").textContent = msg;
+      $("toast").classList.remove("hidden");
+      setTimeout(()=> $("toast").classList.add("hidden"), 1600);
+    }
+
+    // -----------------------------
+    // Auth
+    // -----------------------------
+    function setAuthMessage(t){ const el = $("authMsg"); if(el) el.textContent = t || ""; }
+
+    async function sbSignUp(email, password){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogin(email, password){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogout(){
+      const { error } = await sb.auth.signOut();
+      if(error) throw error;
+    }
+
+    async function loadUserState(){
+      // Choose best source: remote if present, else local
+      let chosen = null;
+      try{
+        const remote = await loadRemote();
+        const local = loadLocal();
+        if(remote && typeof remote === "object"){
+          const rTrades = Array.isArray(remote.trades) ? remote.trades.length : 0;
+          const lTrades = Array.isArray(local.trades) ? local.trades.length : 0;
+          chosen = (rTrades >= lTrades) ? remote : local;
+        } else {
+          chosen = local;
+        }
+      }catch(e){
+        chosen = loadLocal();
+      }
+      S = { ...structuredClone(defaults), ...(chosen || {}) };
+      // Ensure at least one strategy exists for first-time users
+      ensureStarterStrategy();
+      // Persist immediately so the row exists in Supabase for new users
+      saveSmart(S);
+    }
+
+    async function bootSupabase(){
+      try{
+        const { data: { session } } = await sb.auth.getSession();
+        if(session?.user){
+          currentUserId = session.user.id;
+          currentEmail = session.user.email || "";
+          await loadUserState();
+          $("authGate").classList.add("hidden");
+          $("appShell").classList.remove("hidden");
+          bootstrap();
+        } else {
+          $("appShell").classList.add("hidden");
+          $("authGate").classList.remove("hidden");
+        }
+      }catch(e){
+        console.warn(e);
+        $("appShell").classList.add("hidden");
+        $("authGate").classList.remove("hidden");
+      }
+    }
+
+    // Auth UI events
+    $("btnLogin")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Logging in...");
+      try{
+        await sbLogin(email, pass);
+        setAuthMessage("");
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Login failed.");
+      }
+    });
+
+    $("btnSignup")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Creating account...");
+      try{
+        await sbSignUp(email, pass);
+        setAuthMessage("Account created. If email confirmation is ON, check inbox.");
+        // If confirmation is OFF, the user is logged in immediately
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Sign up failed.");
+      }
+    });
+
+    $("btnLogout")?.addEventListener("click", async ()=>{
+      try{ await sbLogout(); }catch(e){ console.warn(e); }
+      currentUserId = null;
+      currentEmail = "";
+      S = structuredClone(defaults);
+      $("appShell").classList.add("hidden");
+      $("authGate").classList.remove("hidden");
+      toast("Logged out");
+    });
+
+
+
+
+    function openSheet(id){
+      $("sheetBackdrop").classList.remove("hidden");
+      $(id).classList.remove("hidden");
+      document.body.classList.add("overflow-hidden");
+    }
+    function closeSheets(){
+      $("sheetBackdrop").classList.add("hidden");
+      ["sheetChecklist","sheetTrade","sheetReview","sheetStrategy","sheetDaily"].forEach(id=> $(id).classList.add("hidden"));
+      document.body.classList.remove("overflow-hidden");
+    }
+    document.addEventListener("click",(e)=>{
+      const t = e.target;
+      if(t && t.getAttribute && t.getAttribute("data-close-sheet")==="1") closeSheets();
+    });
+    $("sheetBackdrop").addEventListener("click", closeSheets);
+
+    // -----------------------------
+    // Tabs
+    // -----------------------------
+    const views = {
+      core: $("viewCore"),
+      goals: $("viewGoals"),
+      review: $("viewReview"),
+      insights: $("viewInsights"),
+      settings: $("viewSettings")
+    };
+    function setTab(tab){
+      Object.keys(views).forEach(k=> views[k].classList.toggle("hidden", k!==tab));
+      document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+      $("topTitle").textContent = tab === "core" ? "Core" : tab[0].toUpperCase()+tab.slice(1);
+      window.scrollTo({top:0, behavior:"smooth"});
+      if(tab==="insights") renderInsights();
+      if(tab==="goals") renderGoals();
+      if(tab==="review") renderReviewTab();
+      if(tab==="settings") renderSettings();
+    }
+    document.querySelectorAll(".navbtn").forEach(btn=> btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
+
+    // -----------------------------
+    // Strategy CRUD
+    // -----------------------------
+    function ensureStarterStrategy(){
+      if(S.strategies.length) return;
+      S.strategies.push({
+        id: uid(),
+        name: "ORB (starter)",
+        rules: [
+          { id: uid(), text: "HTF bias aligned", w: 2 },
+          { id: uid(), text: "No VWAP in the way", w: 2 },
+          { id: uid(), text: "Opening range clean (no chop)", w: 1 },
+          { id: uid(), text: "Risk size correct", w: 2 },
+          { id: uid(), text: "Emotion check passed", w: 1 }
+        ]
+      });
+      saveSmart(S);
+    }
+
+    function renderStrategies(){
+      const wrap = $("strategyList");
+      wrap.innerHTML = "";
+      if(!S.strategies.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No strategies yet. Add one.</div>`;
+        return;
+      }
+      S.strategies.forEach(st=>{
+        const div = document.createElement("div");
+        div.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-start justify-between gap-3";
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(st.name)}</div>
+            <div class="text-sm muted2">${st.rules.length} rules</div>
+          </div>
+          <div class="flex gap-2">
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-edit="${st.id}">Edit</button>
+            <button class="tap px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold" data-del="${st.id}">Delete</button>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+
+      wrap.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-del");
+        S.strategies = S.strategies.filter(s=> s.id!==id);
+        // keep trades intact but strategyName remains
+        saveSmart(S);
+        renderStrategies();
+        syncStrategySelects();
+        toast("Strategy deleted");
+      }));
+      wrap.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=>{
+        openStrategyEditor(b.getAttribute("data-edit"));
+      }));
+    }
+
+    function openStrategyEditor(id=null){
+      $("stHint").textContent = "";
+      $("stName").value = "";
+      $("stRules").innerHTML = "";
+      $("sheetStrategy").dataset.editId = id || "";
+      const st = id ? S.strategies.find(s=> s.id===id) : null;
+      if(st){
+        $("stName").value = st.name;
+        st.rules.forEach(r=> addRuleRow(r.text, r.w, r.id));
+      } else {
+        addRuleRow("", 1);
+        addRuleRow("", 1);
+      }
+      openSheet("sheetStrategy");
+    }
+
+    function addRuleRow(text="", w=1, rid=null){
+      const row = document.createElement("div");
+      row.className = "grid grid-cols-12 gap-2";
+      const id = rid || uid();
+      row.dataset.rid = id;
+      row.innerHTML = `
+        <input class="col-span-9 bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Rule (e.g., No VWAP ahead)" value="${escapeAttr(text)}">
+        <input type="number" min="1" max="5" class="col-span-2 bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" value="${w}">
+        <button class="col-span-1 tap rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">×</button>
+      `;
+      row.querySelector("button").addEventListener("click", ()=>{
+        row.remove();
+      });
+      $("stRules").appendChild(row);
+    }
+
+    $("btnAddRule").addEventListener("click", ()=> addRuleRow("",1));
+
+    $("btnSaveStrategy").addEventListener("click", ()=>{
+      const name = $("stName").value.trim();
+      if(!name){ $("stHint").textContent = "Name required."; return; }
+      const rows = Array.from($("stRules").children);
+      const rules = rows.map(r=>{
+        const inputs = r.querySelectorAll("input");
+        const text = (inputs[0].value||"").trim();
+        const w = parseInt(inputs[1].value||"1",10);
+        return { id: r.dataset.rid, text, w: (isNaN(w)||w<1)?1:w };
+      }).filter(x=> x.text.length);
+      if(!rules.length){ $("stHint").textContent = "Add at least 1 rule."; return; }
+
+      const editId = $("sheetStrategy").dataset.editId || "";
+      if(editId){
+        const st = S.strategies.find(s=> s.id===editId);
+        if(st){ st.name = name; st.rules = rules; }
+        // update strategyName on trades for display consistency
+        S.trades.forEach(t=> { if(t.strategyId===editId) t.strategyName = name; });
+        toast("Strategy updated");
+      } else {
+        S.strategies.push({ id: uid(), name, rules });
+        toast("Strategy saved");
+      }
+      saveSmart(S);
+      closeSheets();
+      renderStrategies();
+      syncStrategySelects();
+      updateCoreStatus();
+    });
+
+    // -----------------------------
+    // Checklist
+    // -----------------------------
+    const gradeFromPct = (pct)=>{
+      if(pct>=85) return "A";
+      if(pct>=70) return "B";
+      if(pct>=55) return "C";
+      return "D";
+    };
+
+    let lastChecklist = null; // {strategyId, score, grade, confidence, answers:{ruleId:boolean}}
+    function syncStrategySelects(){
+      const opts = S.strategies.map(s=> `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+      ["ckStrategy","tStrategy","fltStrategy"].forEach(id=>{
+        const el = $(id);
+        if(!el) return;
+        el.innerHTML = `<option value="">All</option>` + opts;
+      });
+      // checklist/trade should default to first strategy
+      if($("ckStrategy").value==="" && S.strategies[0]) $("ckStrategy").value = S.strategies[0].id;
+      if($("tStrategy").value==="" && S.strategies[0]) $("tStrategy").value = S.strategies[0].id;
+    }
+
+    function buildChecklist(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const wrap = $("ckRules");
+      wrap.innerHTML = "";
+      if(!st){
+        wrap.innerHTML = `<div class="text-sm muted2">Create a strategy first.</div>`;
+        updateChecklistScore();
+        return;
+      }
+      st.rules.forEach(r=>{
+        const row = document.createElement("label");
+        row.className = "tap flex items-center justify-between gap-3 rounded-2xl bg-white/5 ring-soft px-4 py-3";
+        row.innerHTML = `
+          <div class="text-sm">${escapeHtml(r.text)} <span class="text-xs muted2">(w${r.w})</span></div>
+          <input type="checkbox" class="accent-accent" data-rule="${r.id}">
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll("input[type=checkbox]").forEach(cb=>{
+        cb.addEventListener("change", updateChecklistScore);
+      });
+
+      updateChecklistScore();
+    }
+
+    function updateChecklistScore(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const conf = clamp(parseInt($("ckConfidence").value||"0",10),0,100);
+
+      if(!st){
+        $("ckScore").textContent = "0%";
+        $("ckGrade").textContent = "Grade: D";
+        $("ckBar").style.width = "0%";
+        lastChecklist = null;
+        return;
+      }
+      const boxes = Array.from($("ckRules").querySelectorAll("input[type=checkbox]"));
+      const answers = {};
+      boxes.forEach(b=> answers[b.dataset.rule] = !!b.checked);
+
+      const totalW = st.rules.reduce((a,r)=> a + (parseInt(r.w,10)||1), 0) || 1;
+      const gotW = st.rules.reduce((a,r)=> a + ((answers[r.id]) ? (parseInt(r.w,10)||1) : 0), 0);
+      // blend with confidence a little (keeps user honest)
+      const pctRules = Math.round((gotW/totalW)*100);
+      const pct = Math.round(pctRules*0.85 + conf*0.15);
+
+      const grade = gradeFromPct(pct);
+      $("ckScore").textContent = pct + "%";
+      $("ckGrade").textContent = "Grade: " + grade;
+      $("ckBar").style.width = pct + "%";
+
+      // gating hint
+      $("ckHint").textContent = (grade==="A"||grade==="B") ? "Green light. Still respect risk." : "Yellow/red. Consider passing.";
+
+      lastChecklist = { strategyId: sid, score: pct, grade, confidence: conf, answers };
+    }
+
+    $("ckStrategy").addEventListener("change", buildChecklist);
+    $("ckConfidence").addEventListener("input", updateChecklistScore);
+
+    // -----------------------------
+    // Trades
+    // -----------------------------
+    function blockReason(){
+      const r = S.risk;
+      const today = todayISO();
+      const todayTrades = S.trades.filter(t=> t.date===today);
+      const maxTrades = parseInt(r.maxTrades||"",10);
+      const hard = !!r.hardStop;
+
+      // loss tracking from reviewed trades only
+      const lossLimit = parseFloat(r.dailyLoss||"");
+      let realizedLoss = 0;
+      todayTrades.forEach(t=>{
+        if(t.reviewed && t.review && typeof t.review.r==="number"){
+          const rVal = t.review.r;
+          if(rVal < 0){
+            // approximate $ loss using risk size if present
+            const risk = parseFloat(t.risk||"");
+            if(!isNaN(risk)) realizedLoss += Math.abs(rVal) * risk;
+          }
+        }
+      });
+
+      if(hard && !isNaN(maxTrades) && maxTrades>0 && todayTrades.length >= maxTrades){
+        return `Max trades/day reached (${maxTrades}).`;
+      }
+      if(hard && !isNaN(lossLimit) && lossLimit>0 && realizedLoss >= lossLimit){
+        return `Daily loss limit hit ($${lossLimit.toFixed(0)}).`;
+      }
+      return "";
+    }
+
+    function openTradeSheet(prefillFromChecklist=true){
+      // gate
+      const reason = blockReason();
+      if(reason){
+        toast(reason);
+        return;
+      }
+
+      $("tradeHint").textContent = "";
+      $("tSymbol").value = "";
+      $("tSetup").value = "";
+      $("tRisk").value = S.risk.dailyLoss ? "" : ""; // leave blank
+      $("tNotes").value = "";
+      $("tConfidence").value = "";
+
+      // apply checklist snapshot
+      if(prefillFromChecklist && lastChecklist){
+        $("tStrategy").value = lastChecklist.strategyId;
+        $("tConfidence").value = String(lastChecklist.confidence);
+        $("tScore").textContent = lastChecklist.score + "%";
+        $("tGrade").textContent = "Grade: " + lastChecklist.grade;
+        $("tScoreMeta").textContent = "From your latest checklist";
+        $("tStrategy").disabled = false;
+      } else {
+        $("tScore").textContent = "—";
+        $("tGrade").textContent = "Grade: —";
+        $("tScoreMeta").textContent = "Run checklist for scoring";
+      }
+
+      openSheet("sheetTrade");
+    }
+
+    // -----------------------------
+    // Image upload (Supabase Storage)
+    // -----------------------------
+    function safeFileName(name){
+      return String(name||"image").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0,120);
+    }
+    function renderImagePreview(files){
+      const wrap = $("tImgPreview");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+      const arr = Array.from(files||[]);
+      arr.slice(0,12).forEach(f=>{
+        const url = URL.createObjectURL(f);
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "w-full aspect-square object-cover rounded-xl ring-soft";
+        img.onload = ()=> URL.revokeObjectURL(url);
+        wrap.appendChild(img);
+      });
+      if(arr.length > 12){
+        const more = document.createElement("div");
+        more.className = "rounded-xl ring-soft bg-white/5 grid place-items-center text-xs muted2";
+        more.textContent = "+" + (arr.length-12);
+        wrap.appendChild(more);
+      }
+    }
+    async function uploadTradeImages(tradeId, fileList){
+      const files = Array.from(fileList||[]);
+      const out = [];
+      for(const f of files){
+        const path = `${currentUserId}/${tradeId}/${Date.now()}_${safeFileName(f.name)}`;
+        const { error: upErr } = await sb.storage.from(STORAGE_BUCKET).upload(path, f, { upsert: false, contentType: f.type });
+        if(upErr) throw upErr;
+        const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        out.push({ path, url: data?.publicUrl || "", name: f.name, type: f.type, size: f.size });
+      }
+      return out;
+    }
+
+
+    async function saveTrade(){
+      const strategyId = $("tStrategy").value;
+      const st = S.strategies.find(s=> s.id===strategyId);
+      if(!st){ $("tradeHint").textContent = "Select a strategy."; return; }
+
+      const symbol = $("tSymbol").value.trim();
+      const setup = $("tSetup").value.trim();
+      const session = $("tSession").value;
+      const risk = $("tRisk").value.trim();
+      const confidence = clamp(parseInt($("tConfidence").value||"0",10),0,100);
+      const notes = $("tNotes").value.trim();
+
+      if(!symbol){ $("tradeHint").textContent = "Symbol required."; return; }
+
+      // require checklist OR allow but warn
+      let preScore = null, preGrade = null, preAnswers = null;
+      if(lastChecklist && lastChecklist.strategyId === strategyId){
+        preScore = lastChecklist.score;
+        preGrade = lastChecklist.grade;
+        preAnswers = lastChecklist.answers;
+      }
+
+      // hard stop warns near loss limit
+      const warnRisk = S.notifs.risk && S.risk.dailyLoss && !isNaN(parseFloat(S.risk.dailyLoss));
+      if(warnRisk){
+        // no live PnL here; we just remind about discipline
+      }
+
+      const t = {
+        id: uid(),
+        ts: Date.now(),
+        date: todayISO(),
+        strategyId,
+        strategyName: st.name,
+        symbol,
+        setup,
+        session,
+        risk,
+        confidence,
+        preScore,
+        preGrade,
+        preAnswers,
+        notes,
+        reviewed: false,
+        review: null
+      };
+      S.trades.unshift(t);
+      saveSmart(S);
+
+      closeSheets();
+      toast("Trade saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      renderGoals();
+    }
+
+    // -----------------------------
+    // Review
+    // -----------------------------
+    const MISTAKE_TAGS = [
+      "FOMO", "Revenge", "Ignored VWAP", "No HTF bias", "Oversized", "Late entry",
+      "No plan", "Moved stop (mental)", "Traded chop", "Didn’t wait retest", "Overtraded"
+    ];
+    let reviewTradeId = null;
+
+    function openReviewSheet(tradeId){
+      const t = S.trades.find(x=> x.id===tradeId);
+      if(!t) return;
+
+      reviewTradeId = tradeId;
+      $("rvTitle").textContent = `${t.symbol} • ${t.strategyName}`;
+      $("rvHint").textContent = "";
+
+      $("rvOutcome").value = t.review?.outcome || "win";
+      $("rvR").value = (t.review && typeof t.review.r==="number") ? String(t.review.r) : "";
+      $("rvLesson").value = t.review?.lesson || "";
+
+      const wrap = $("rvMistakes");
+      wrap.innerHTML = "";
+      const selected = new Set((t.review?.mistakes)||[]);
+      MISTAKE_TAGS.forEach(tag=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+        b.textContent = tag;
+        b.addEventListener("click", ()=>{
+          if(selected.has(tag)) selected.delete(tag); else selected.add(tag);
+          b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+          wrap.dataset.sel = JSON.stringify(Array.from(selected));
+        });
+        wrap.appendChild(b);
+      });
+      wrap.dataset.sel = JSON.stringify(Array.from(selected));
+
+      const g = $("rvImgs");
+      if(g){
+        g.innerHTML="";
+        const arr = (t.attachments||[]);
+        if(!arr.length) g.innerHTML = `<div class="text-sm muted2">No images found.</div>`;
+        else arr.forEach(a=>{
+          const link=document.createElement("a");
+          link.href=a.url||"#";
+          link.target="_blank";
+          link.rel="noopener";
+          const img=document.createElement("img");
+          img.src=a.url||"";
+          img.className="w-full aspect-square object-cover rounded-xl ring-soft";
+          link.appendChild(img);
+          g.appendChild(link);
+        });
+      }
+      openSheet("sheetReview");
+    }
+
+    function saveReview(){
+      const t = S.trades.find(x=> x.id===reviewTradeId);
+      if(!t) return;
+
+      const outcome = $("rvOutcome").value;
+      const rVal = parseFloat($("rvR").value);
+      const lesson = $("rvLesson").value.trim();
+      if(isNaN(rVal)){ $("rvHint").textContent = "Realized R required."; return; }
+      if(!lesson || lesson.length < 10){ $("rvHint").textContent = "Lesson required (at least ~10 chars)."; return; }
+
+      const mistakes = JSON.parse($("rvMistakes").dataset.sel || "[]");
+
+      t.reviewed = true;
+      t.review = { outcome, r: rVal, mistakes, lesson, ts: Date.now() };
+      saveSmart(S);
+
+      // Achievements check
+      checkAchievements();
+
+      closeSheets();
+      toast("Review saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      renderGoals();
+      if(!views.insights.classList.contains("hidden")) renderInsights();
+    }
+
+    // -----------------------------
+    // Daily Review
+    // -----------------------------
+    function openDailyReview(){
+      $("drHint").textContent = "";
+      $("drMeta").textContent = "Date: " + todayISO();
+      $("drText").value = S.dailyReviews[todayISO()]?.text || "";
+      openSheet("sheetDaily");
+    }
+    function saveDailyReview(){
+      ensureDailyReviews();
+
+      const text = $("drText").value.trim();
+      if(text.length < 10){ $("drHint").textContent = "Write at least one sentence."; return; }
+      S.dailyReviews[todayISO()] = { text, ts: Date.now() };
+      saveSmart(S);
+      checkAchievements();
+      $("drHint").textContent = "Saved.";
+      state.dailyReviews = state.dailyReviews.filter(x=>x.date!==todayISO());
+      state.dailyReviews.push({ date: todayISO(), score: drScore, notes: drNotes, ts: Date.now() });
+      saveState();
+      renderDailyReviewHistory();
+      toast("Daily review saved");
+      updateCoreStatus();
+      renderGoals();
+    }
+
+    // -----------------------------
+    // Goals & achievements
+    // -----------------------------
+    function reviewedTradesWithin(days){
+      const cutoff = Date.now() - days*24*60*60*1000;
+      return S.trades.filter(t=> t.reviewed && t.review && t.review.ts >= cutoff);
+    }
+
+    function computeGoals(){
+      const month = todayISO().slice(0,7);
+      const monthReviewed = S.trades.filter(t=> t.reviewed && t.date.startsWith(month));
+      const monthR = monthReviewed.reduce((a,t)=> a + (t.review?.r || 0), 0);
+      const aTrades = monthReviewed.filter(t=> (t.preGrade==="A")).length;
+      const total = monthReviewed.length || 1;
+      const aPct = Math.round((aTrades/total)*100);
+
+      // PD streak: days with daily review submitted
+      let streak = 0;
+      for(let i=0;i<365;i++){
+        const d = new Date();
+        d.setDate(d.getDate()-i);
+        const key = d.toISOString().slice(0,10);
+        if(S.dailyReviews[key]) streak++;
+        else break;
+      }
+
+      return {
+        monthR,
+        aPct,
+        streak,
+        reviewedCountMonth: monthReviewed.length
+      };
+    }
+
+    function checkAchievements(){
+      const a = S.achievements || (S.achievements = {});
+      const goals = computeGoals();
+
+      // helpers
+      const unlock = (key, label)=>{
+        if(a[key]) return false;
+        a[key] = { ts: Date.now(), label };
+        saveSmart(S);
+        toast("Achievement unlocked: " + label);
+        return true;
+      };
+
+      // Achievements
+      const reviewed = S.trades.filter(t=> t.reviewed).length;
+      if(reviewed >= 1) unlock("first_review", "First review");
+      if(reviewed >= 10) unlock("ten_reviews", "10 reviews");
+      if(goals.streak >= 3) unlock("streak_3", "3-day review streak");
+      if(goals.streak >= 7) unlock("streak_7", "7-day review streak");
+
+      // A-grade streak (last 5 reviewed, all A)
+      const last5 = S.trades.filter(t=> t.reviewed).slice(0,5);
+      if(last5.length===5 && last5.every(t=> t.preGrade==="A")) unlock("a5", "5 A-grade trades in a row");
+
+      // Monthly R goal
+      if(goals.monthR >= 5) unlock("month_r5", "Monthly +5R");
+    }
+
+    function renderGoals(){
+      const g = computeGoals();
+      const list = $("goalsList");
+      list.innerHTML = "";
+
+      const goalRow = (title, sub, valueText, pct=null)=>{
+        const div = document.createElement("div");
+        div.className = "rounded-2xl bg-white/5 ring-soft p-4";
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${escapeHtml(title)}</div>
+              <div class="text-sm muted2">${escapeHtml(sub)}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-xl font-semibold">${escapeHtml(valueText)}</div>
+              ${pct===null ? "" : `<div class="text-xs muted2">${pct}%</div>`}
+            </div>
+          </div>
+          ${pct===null ? "" : `
+            <div class="mt-3 h-2 rounded-full bg-white/5 overflow-hidden">
+              <div class="h-full bg-accent/60" style="width:${pct}%"></div>
+            </div>
+          `}
+        `;
+        return div;
+      };
+
+      // Monthly discipline target: A-grade share
+      list.appendChild(goalRow("Monthly discipline", "A-grade share (reviewed trades)", `${g.aPct}%`, g.aPct));
+      // Monthly R
+      list.appendChild(goalRow("Monthly performance", "Net R this month (reviewed)", `${g.monthR.toFixed(2)}R`));
+      // Review streak
+      list.appendChild(goalRow("Review streak", "Consecutive days with Daily Review", `${g.streak} days`, Math.min(100, g.streak*10)));
+
+      // achievements
+      const ach = $("achievements");
+      ach.innerHTML = "";
+      const all = [
+        {key:"first_review", label:"First review"},
+        {key:"ten_reviews", label:"10 reviews"},
+        {key:"streak_3", label:"3-day streak"},
+        {key:"streak_7", label:"7-day streak"},
+        {key:"a5", label:"5 A-grade in a row"},
+        {key:"month_r5", label:"Monthly +5R"}
+      ];
+      all.forEach(it=>{
+        const got = !!S.achievements[it.key];
+        const div = document.createElement("div");
+        div.className = "rounded-2xl ring-soft p-4 " + (got ? "bg-white/10" : "bg-white/5");
+        div.innerHTML = `
+          <div class="text-sm font-semibold">${it.label}</div>
+          <div class="text-sm muted2 mt-1">${got ? "Unlocked" : "Locked"}</div>
+        `;
+        ach.appendChild(div);
+      });
+    }
+
+    // -----------------------------
+    // Review tab list
+    // -----------------------------
+    function renderReviewTab(){
+      const list = $("reviewTradeList");
+      list.innerHTML = "";
+      if(!S.trades.length){
+        $("reviewHeadline").textContent = "No trades yet";
+        $("reviewSub").textContent = "Log a trade in Core.";
+        $("btnOpenReview").disabled = true;
+        return;
+      }
+      const latest = S.trades[0];
+      $("reviewHeadline").textContent = `${latest.symbol} • ${latest.strategyName}`;
+      $("reviewSub").textContent = latest.reviewed ? `Reviewed • ${latest.review.r.toFixed(2)}R` : "Not reviewed yet";
+      $("btnOpenReview").disabled = false;
+
+      $("btnOpenReview").onclick = ()=> openReviewSheet(latest.id);
+
+      S.trades.slice(0,20).forEach(t=>{
+        const div = document.createElement("button");
+        div.className = "tap w-full text-left rounded-2xl bg-white/5 hover:bg-white/10 ring-soft p-4";
+        const badge = t.reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/5">Pending</span>`;
+        const grade = t.preGrade ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/5">Grade ${t.preGrade}</span>` : "";
+        const rtxt = (t.reviewed && t.review) ? `${t.review.r.toFixed(2)}R` : "—";
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+              <div class="text-sm muted2">${escapeHtml(t.setup||"")} • ${t.date} • 📷 ${(t.attachments||[]).length}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-semibold">${rtxt}</div>
+              <div class="mt-1 flex gap-2 justify-end">${badge}${grade}</div>
+            </div>
+          </div>
+        `;
+        div.addEventListener("click", ()=> openReviewSheet(t.id));
+        list.appendChild(div);
+      });
+    }
+
+    // -----------------------------
+    // Core: today trades
+    // -----------------------------
+    function renderTodayTrades(){
+      const wrap = $("todayTrades");
+      wrap.innerHTML = "";
+      const today = todayISO();
+      const trades = S.trades.filter(t=> t.date===today);
+      $("todayMeta").textContent = `${trades.length} logged`;
+      if(!trades.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No trades today.</div>`;
+        return;
+      }
+      trades.slice(0,10).forEach(t=>{
+        const div = document.createElement("div");
+        div.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-center justify-between gap-3";
+        const left = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+            <div class="text-sm muted2">${escapeHtml(t.setup||"")} • ${escapeHtml(t.session||"")}</div>
+          </div>
+        `;
+        const right = `
+          <div class="text-right">
+            <div class="text-sm font-semibold">${t.reviewed && t.review ? t.review.r.toFixed(2)+"R" : "Pending"}</div>
+            <div class="text-xs muted2">${t.preScore!=null ? "Checklist "+t.preScore+"% ("+t.preGrade+")" : "Checklist not saved"} • 📷 ${(t.attachments||[]).length}</div>
+          </div>
+        `;
+        div.innerHTML = left + right;
+        div.addEventListener("click", ()=> openReviewSheet(t.id));
+        wrap.appendChild(div);
+      });
+    }
+
+    function updateCoreStatus(){
+      // greeting
+      const hr = new Date().getHours();
+      const name = (S.profile.name || "").trim();
+      const greet = hr < 12 ? "Good morning" : (hr < 18 ? "Good afternoon" : "Good evening");
+      $("greeting").textContent = name ? `${greet}, ${name}` : greet;
+
+      // checklist status
+      const today = todayISO();
+      const reviewedCount = S.trades.filter(t=> t.date===today && t.reviewed).length;
+      const totalCount = S.trades.filter(t=> t.date===today).length;
+      const dailyDone = !!S.dailyReviews[today];
+
+      let msg = "";
+      if(!totalCount) msg = "No trades logged today. That’s allowed.";
+      else msg = `Today: ${totalCount} trades, ${reviewedCount} reviewed.`;
+      if(!dailyDone) msg += " Daily Review is not done.";
+      $("coreStatus").textContent = msg;
+
+      // risk meta
+      const r = S.risk;
+      const bits = [];
+      if(r.dailyLoss) bits.push(`Loss $${r.dailyLoss}`);
+      if(r.maxTrades) bits.push(`Max ${r.maxTrades}/day`);
+      bits.push(r.hardStop ? "Hard stop on" : "Hard stop off");
+      $("riskMeta").textContent = bits.join(" • ");
+
+      // top bar quick add gating hint
+      const reason = blockReason();
+      $("btnQuickAdd").disabled = !!reason;
+      if(reason) $("btnQuickAdd").classList.add("opacity-40");
+      else $("btnQuickAdd").classList.remove("opacity-40");
+
+      // notifications nudge
+      maybeNudgeDailyReview();
+    }
+
+    // -----------------------------
+    // Insights (Chart.js)
+    // -----------------------------
+    let chartR = null;
+    let activeFilters = { strategyId:"", days:30, grade:"D" };
+
+    function gradeMinPass(grade, min){
+      const order = { "A":4, "B":3, "C":2, "D":1 };
+      return (order[grade]||1) >= (order[min]||1);
+    }
+
+    function filteredReviewedTrades(){
+      const days = parseInt(activeFilters.days||30,10);
+      const cutoff = Date.now() - days*24*60*60*1000;
+      return S.trades
+        .filter(t=> t.reviewed && t.review && t.review.ts >= cutoff)
+        .filter(t=> !activeFilters.strategyId || t.strategyId === activeFilters.strategyId)
+        .filter(t=> gradeMinPass(t.preGrade || "D", activeFilters.grade || "D"))
+        .slice()
+        .reverse();
+    }
+
+    function renderInsights(){
+      // filters UI
+      syncStrategySelects();
+      $("fltDays").value = String(activeFilters.days || 30);
+      $("fltGrade").value = activeFilters.grade || "D";
+      $("fltStrategy").value = activeFilters.strategyId || "";
+
+      const reviewed = filteredReviewedTrades();
+
+      // R curve data
+      let cum = 0;
+      const labels = [];
+      const data = [];
+      reviewed.forEach((t,i)=>{
+        cum += (t.review?.r || 0);
+        labels.push(t.date);
+        data.push(cum);
+      });
+
+      if(chartR){
+        chartR.destroy();
+        chartR = null;
+      }
+      const ctx = $("chartR").getContext("2d");
+      chartR = new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets: [{ label:"Cumulative R", data, tension:.25, borderWidth:2, pointRadius:0 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display:false } },
+          scales: {
+            x: { ticks: { color:"rgba(255,255,255,.55)" }, grid: { color:"rgba(255,255,255,.06)" } },
+            y: { ticks: { color:"rgba(255,255,255,.55)" }, grid: { color:"rgba(255,255,255,.06)" } }
+          }
+        }
+      });
+
+      // discipline (A-grade share in last 7 days, reviewed)
+      const last7 = reviewedTradesWithin(7);
+      const a = last7.filter(t=> t.preGrade==="A").length;
+      const denom = last7.length || 0;
+      const pct = denom ? Math.round((a/denom)*100) : 0;
+      $("discPct").textContent = pct + "%";
+      $("discMeta").textContent = denom ? `${a} of ${denom} reviewed trades` : "No reviewed trades in 7 days";
+
+      // top mistake
+      const last30 = reviewedTradesWithin(30);
+      const counts = {};
+      last30.forEach(t=>{
+        (t.review?.mistakes||[]).forEach(m=> counts[m] = (counts[m]||0)+1);
+      });
+      const top = Object.entries(counts).sort((a,b)=> b[1]-a[1])[0];
+      $("topMistake").textContent = top ? top[0] : "None";
+      $("topMistakeMeta").textContent = top ? `${top[1]} times in 30 days` : "Tag mistakes during reviews to track patterns.";
+
+      // quick stats
+      $("statTrades").textContent = String(S.trades.length);
+      const revCount = S.trades.filter(t=> t.reviewed).length;
+      $("statReviewed").textContent = String(revCount);
+      const avgR = revCount ? (S.trades.filter(t=>t.reviewed).reduce((a,t)=> a+(t.review?.r||0),0)/revCount) : 0;
+      $("statAvgR").textContent = avgR.toFixed(2);
+      $("statReviewRate").textContent = S.trades.length ? Math.round((revCount/S.trades.length)*100)+"%" : "0%";
+    }
+
+    $("btnApplyFilters").addEventListener("click", ()=>{
+      activeFilters.strategyId = $("fltStrategy").value || "";
+      activeFilters.days = clamp(parseInt($("fltDays").value||"30",10), 1, 365);
+      activeFilters.grade = $("fltGrade").value || "D";
+      renderInsights();
+      toast("Filters applied");
+    });
+    $("btnResetFilters").addEventListener("click", ()=>{
+      activeFilters = { strategyId:"", days:30, grade:"D" };
+      renderInsights();
+      toast("Filters reset");
+    });
+
+    // -----------------------------
+    // Settings / export / import
+    // -----------------------------
+    function renderSettings(){
+      $("setName").value = S.profile.name || "";
+      $("setNotifDaily").checked = !!S.notifs.daily;
+      $("setNotifRisk").checked = !!S.notifs.risk;
+      $("notifStatus").textContent = (Notification && Notification.permission==="granted") ? "Browser: enabled" : "Browser: not enabled";
+    }
+
+    $("btnSaveProfile").addEventListener("click", ()=>{
+      S.profile.name = $("setName").value.trim();
+      saveSmart(S);
+      $("profileSaved").textContent = "Saved.";
+      setTimeout(()=> $("profileSaved").textContent="", 1200);
+      updateCoreStatus();
+      toast("Profile saved");
+    });
+
+    $("btnEnableBrowserNotif").addEventListener("click", async ()=>{
+      try{
+        if(!("Notification" in window)){ $("notifStatus").textContent = "Not supported."; return; }
+        const p = await Notification.requestPermission();
+        $("notifStatus").textContent = (p==="granted") ? "Browser: enabled" : "Browser: blocked";
+        S.notifs.browser = (p==="granted");
+        saveSmart(S);
+      }catch(e){
+        $("notifStatus").textContent = "Failed.";
+      }
+    });
+
+    $("setNotifDaily").addEventListener("change", ()=>{ S.notifs.daily = $("setNotifDaily").checked; saveSmart(S); });
+    $("setNotifRisk").addEventListener("change", ()=>{ S.notifs.risk = $("setNotifRisk").checked; saveSmart(S); });
+
+    $("btnExport").addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(S,null,2)], {type:"application/json"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "tradecheck-export.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      toast("Exported");
+    });
+
+    $("importFile").addEventListener("change", async (e)=>{
+      const f = e.target.files && e.target.files[0];
+      if(!f) return;
+      try{
+        const txt = await f.text();
+        const obj = JSON.parse(txt);
+        S = { ...structuredClone(defaults), ...obj };
+        saveSmart(S);
+        toast("Imported");
+        bootstrap();
+      }catch(err){
+        $("dataMsg").textContent = "Import failed.";
+      }finally{
+        e.target.value = "";
+      }
+    });
+
+    $("btnResetAll").addEventListener("click", ()=>{
+      if(!confirm("Reset all TradeCheck data on this device?")) return;
+      localStorage.removeItem(KEY);
+      S = load();
+      ensureStarterStrategy();
+      saveSmart(S);
+      toast("Reset");
+      bootstrap();
+    });
+
+    // -----------------------------
+    // Risk settings in Core
+    // -----------------------------
+    $("btnSaveRisk").addEventListener("click", ()=>{
+      S.risk.dailyLoss = ($("setDailyLoss").value||"").trim();
+      S.risk.maxTrades = ($("setMaxTrades").value||"").trim();
+      S.risk.hardStop = $("setHardStop").checked;
+      saveSmart(S);
+      $("riskSaved").textContent = "Saved.";
+      setTimeout(()=> $("riskSaved").textContent="", 1200);
+      updateCoreStatus();
+      toast("Risk saved");
+    });
+
+    // -----------------------------
+    // Buttons
+    // -----------------------------
+    $("btnStartChecklist").addEventListener("click", ()=>{
+      if(!S.strategies.length){ toast("Add a strategy first"); return; }
+      buildChecklist();
+      openSheet("sheetChecklist");
+    });
+    $("btnProceedTrade").addEventListener("click", ()=>{
+      // Require checklist to proceed? we allow but warn. We'll allow always.
+      closeSheets();
+      openTradeSheet(true);
+    });
+    $("btnSaveTrade").addEventListener("click", saveTrade);
+    
+    if($("tImages")) $("tImages").addEventListener("change", (e)=> renderImagePreview(e.target.files));
+$("btnSaveReview").addEventListener("click", saveReview);
+    $("btnNewStrategy").addEventListener("click", ()=> openStrategyEditor(null));
+    $("btnGoReview").addEventListener("click", ()=>{
+      setTab("review");
+      if(S.trades[0]) openReviewSheet(S.trades[0].id);
+    });
+    $("btnQuickAdd").addEventListener("click", ()=> openTradeSheet(false));
+
+    $("btnOpenReview").addEventListener("click", ()=>{ /* set in renderReviewTab */ });
+
+    // Daily Review access: from Goals or settings we keep, but add quick access via keyboard? We'll add long-press? Simple: in Review tab add button later if needed.
+    // We'll add a small shortcut: double click top title opens daily review.
+    $("topTitle").addEventListener("dblclick", openDailyReview);
+
+    // Add Daily Review entry points:
+    const dailyBtn = document.createElement("button");
+    dailyBtn.className = "tap mt-3 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium";
+    dailyBtn.textContent = "Open Daily Review";
+    dailyBtn.addEventListener("click", openDailyReview);
+    $("viewReview").querySelector(".rounded-3xl")?.appendChild(dailyBtn);
+
+    $("btnSaveDaily").addEventListener("click", saveDailyReview);
+
+    // -----------------------------
+    // Nudges (in-app + optional browser)
+    // -----------------------------
+    function maybeNudgeDailyReview(){
+      if(!S.notifs.daily) return;
+      const today = todayISO();
+      // After 4pm local time, nudge if not done and trades exist
+      const hr = new Date().getHours();
+      if(hr < 16) return;
+      const hasTrades = S.trades.some(t=> t.date===today);
+      if(!hasTrades) return;
+      if(S.dailyReviews[today]) return;
+
+      // in-app nudge (soft)
+      // one per session
+      if(sessionStorage.getItem("tc.nudgedDaily") === "1") return;
+      sessionStorage.setItem("tc.nudgedDaily","1");
+
+      toast("Daily Review is waiting.");
+
+      // browser notification if allowed
+      if(S.notifs.browser && "Notification" in window && Notification.permission==="granted"){
+        try{ new Notification("TradeCheck", { body: "Don’t forget your Daily Review." }); }catch(e){}
+      }
+    }
+
+    // -----------------------------
+    // Boot / render
+    // -----------------------------
+    function renderRiskInputs(){
+      $("setDailyLoss").value = S.risk.dailyLoss || "";
+      $("setMaxTrades").value = S.risk.maxTrades || "";
+      $("setHardStop").checked = !!S.risk.hardStop;
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+    function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
+    function clamp(n,min,max){ n = isNaN(n)?min:n; return Math.max(min, Math.min(max, n)); }
+
+    function bootstrap(){
+      ensureStarterStrategy();
+      syncStrategySelects();
+      renderStrategies();
+      renderRiskInputs();
+      renderTodayTrades();
+      renderReviewTab();
+      renderGoals();
+      renderSettings();
+      updateCoreStatus();
+      checkAchievements();
+      updateCoreStatus();
+    }
+
+    document.addEventListener("DOMContentLoaded", bootSupabase);
+  </script>
+</body>
+</html>
