@@ -17,12 +17,12 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- PWA Meta Tags (Optional - comment out if not using PWA) -->
   <link rel="manifest" href="/TradeCheck/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/TradeCheck/icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#030712">
-  
-  <!-- iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="TradeCheck">
@@ -49,8 +49,6 @@
       <button id="signupBtn" class="mt-2 w-full px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-sm">Sign up</button>
 
       <div id="authMsg" class="text-xs text-red-300 mt-2"></div>
-      
-      
     </div>
   </div>
 
@@ -766,8 +764,8 @@
 // 3. Copy "anon public" key → paste below as SUPABASE_ANON_KEY
 // =====================================================================
 
-const SUPABASE_URL = "https://hfnpqamhtxhhsrwmngtv.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_2im62kUUfZ_WLgaHuNmP7w_vFsuE0QV";
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
 // =====================================================================
 // IMPORTANT: After updating credentials above, create these tables:
@@ -2382,6 +2380,28 @@ function renderStreaks(){
   if(streakDisciplined) streakDisciplined.textContent = String(computeDisciplinedStreak());
 }
 
+// Add filter change listeners
+if(filterStrategy){
+  filterStrategy.addEventListener("change", () => {
+    renderStatsAndCharts();
+    renderTrades();
+  });
+}
+
+if(filterSession){
+  filterSession.addEventListener("change", () => {
+    renderStatsAndCharts();
+    renderTrades();
+  });
+}
+
+if(filterDOW){
+  filterDOW.addEventListener("change", () => {
+    renderStatsAndCharts();
+    renderTrades();
+  });
+}
+
 if(weekSelect){
   weekSelect.addEventListener("change", ()=> renderWeekly(weekSelect.value));
 }
@@ -2514,20 +2534,14 @@ if(onboardLogout){
     try{ await sbLogout(); location.reload(); } catch(e){ console.warn(e); }
   });
 }
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js").catch(console.warn);
-}
+
+// Service worker registration (commented out since we don't have the file)
+ if ("serviceWorker" in navigator) {
+   navigator.serviceWorker.register("./sw.js").catch(console.warn);
+ }
 
 // Boot on load
 document.addEventListener("DOMContentLoaded", bootSupabase);
 </script>
-  <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/TradeCheck/sw.js")
-        .then(reg => console.log("SW registered:", reg.scope))
-        .catch(err => console.error("SW registration failed:", err));
-    });
-  }
 </body>
 </html>
