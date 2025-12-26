@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>TradeCheck — Discipline OS</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="stylesheet" href="./assets/css/styles.css" />
+
+
+  <script>
+    // Tailwind config (subtle, single-accent)
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { accent: { DEFAULT: "#60a5fa" } }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100">
+
+  <!-- AUTH GATE -->
+  <div id="authGate" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-5">
+      <div class="w-full max-w-md rounded-3xl bg-zinc-900/90 ring-soft shadow-soft p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted2">TradeCheck</div>
+            <div class="text-2xl font-semibold mt-1">Sign in</div>
+            <div class="text-sm muted2 mt-1"></div>
+          </div>
+          <div class="h-10 w-10 rounded-2xl bg-white/5 ring-soft grid place-items-center">✓</div>
+        </div>
+
+        <div class="mt-5 space-y-3">
+          <div>
+            <div class="text-xs muted2">Email</div>
+            <input id="authEmail" type="email" autocomplete="email" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="you@email.com" />
+          </div>
+          <div>
+            <div class="text-xs muted2">Password</div>
+            <input id="authPass" type="password" autocomplete="current-password" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="••••••••" />
+          </div>
+          <div id="authMsg" class="text-sm muted2"></div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button id="btnLogin" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Login</button>
+          <button id="btnSignup" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Sign up</button>
+        </div>
+
+        <div class="mt-4 text-xs muted2">
+          Tip: enable “Confirm email” in Supabase Auth if you want verification, otherwise keep it off for instant access.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Shell -->
+  <div id="appShell" class="min-h-screen flex flex-col hidden maxw-screen">
+    <!-- Top bar (quiet) -->
+    <header class="px-5 pt-5 pb-3 safe-top">
+      <div class="flex items-center justify-between flex-wrap">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-2xl bg-white/5 ring-soft grid place-items-center">✓</div>
+          <div>
+            <div class="text-sm muted2">TradeCheck</div>
+            <div id="topTitle" class="text-base font-semibold">Home</div>
+          </div>
+        </div>
+        <button id="btnQuickAdd" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">New trade</button>
+      </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 px-5 pb-32 space-y-6">
+      <!-- CORE -->
+      <section id="viewCore" class="space-y-6">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+          <div class="text-sm muted2" id="greeting">Good morning</div>
+          <div class="text-2xl font-semibold mt-1">Trade your plan. Nothing else matters.</div>
+          <div class="muted mt-2"> </div>
+
+          <div class="mt-5 flex flex-col sm:flex-row gap-3">
+            <button id="btnStartChecklist" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">
+              Start pre-trade checklist
+            </button>
+            <button id="btnGoReview" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">
+              Review latest trade
+            </button>
+          </div>
+
+          <div id="coreStatus" class="mt-4 text-sm muted2"></div>
+          <div class="mt-5 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Today</div>
+                <div class="text-sm muted2" id="todayMeta">No trades logged yet</div>
+              </div>
+              <button id="btnQuickAdd2" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Quick add</button>
+            </div>
+            <div class="mt-3 space-y-2" id="todayTrades"></div>
+          </div>
+
+        </div>
+
+        
+
+        <div class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Strategies</div>
+              <div class="text-sm muted2"></div>
+            </div>
+            <button id="btnNewStrategy" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Add</button>
+          </div>
+          <div class="mt-4 space-y-3" id="strategyList"></div>
+        </div>
+      </section>
+
+      <!-- GOALS -->
+      <section id="viewGoals" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+          
+          <div class="text-2xl font-semibold mt-1">Goals</div>
+          <div class="mt-4 flex gap-2">
+            <input id="goalNew" class="flex-1 bg-white/5 ring-soft rounded-2xl px-3 py-2 text-sm" placeholder="Add a goal (ex: No trades after 11:30)" />
+            <button id="btnAddGoal" class="tap px-3 py-2 rounded-2xl bg-accent/90 text-black text-sm font-semibold">Add</button>
+          </div>
+          <div class="mt-4 space-y-2" id="goalsList"></div>
+        </div>
+
+        
+      </section>
+
+      <!-- REVIEW -->
+      <section id="viewReview" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+          <div class="text-sm muted2">Turn trades into lessons.</div>
+          <div class="text-2xl font-semibold mt-1">Post-trade review</div>
+
+          <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold" id="reviewHeadline">No trades yet</div>
+                <div class="text-sm muted2" id="reviewSub">Log a trade in Core.</div>
+              </div>
+              <button id="btnOpenReview" class="tap px-3 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold disabled:opacity-40" disabled>Review</button>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-2xl bg-white/3 ring-soft p-5">
+            <div class="text-sm font-semibold">Recent trades</div>
+            <div class="text-sm muted2">Tap to review or edit.</div>
+            <div class="mt-4 space-y-3" id="reviewTradeList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- INSIGHTS -->
+      <section id="viewInsights" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+          <div class="text-sm muted2">Reflection, not obsession.</div>
+          <div class="text-2xl font-semibold mt-1">Insights</div>
+
+          <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden md:col-span-2">
+              <div class="text-sm font-semibold">R curve</div>
+              <div class="text-sm muted2">Cumulative R across reviewed trades.</div>
+              <div class="mt-4 relative w-full overflow-hidden">
+                <div class="relative w-full h-40">
+                  <canvas id="chartR" class="w-full max-w-full"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+              <div class="text-sm font-semibold">Discipline</div>
+              <div class="text-sm muted2">A-grade share this week.</div>
+              <div class="mt-4 text-4xl font-semibold" id="discPct">0%</div>
+              <div class="mt-2 text-sm muted2" id="discMeta">No data yet</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden md:col-span-2">
+              <div class="text-sm font-semibold">Top mistake</div>
+              <div class="text-sm muted2">Most common tag in last 30 days.</div>
+              <div class="mt-4 text-xl font-semibold" id="topMistake">None</div>
+              <div class="mt-1 text-sm muted2" id="topMistakeMeta"></div>
+            </div>
+
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+              <div class="text-sm font-semibold">Quick stats</div>
+              <div class="mt-3 space-y-2 text-sm">
+                <div class="flex justify-between"><span class="muted2">Trades</span><span id="statTrades">0</span></div>
+                <div class="flex justify-between"><span class="muted2">Reviewed</span><span id="statReviewed">0</span></div>
+                <div class="flex justify-between"><span class="muted2">Avg R</span><span id="statAvgR">0.00</span></div>
+                <div class="flex justify-between"><span class="muted2">Review rate</span><span id="statReviewRate">0%</span></div>
+              </div>
+            </div>
+          </div>
+
+          <details class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+            <summary class="cursor-pointer list-none flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Refine</div>
+                <div class="text-sm muted2">Optional filters (keep it simple).</div>
+              </div>
+              <div class="text-sm muted2">▾</div>
+            </summary>
+            <div class="mt-4 grid sm:grid-cols-3 gap-3">
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Strategy</div>
+                <select id="fltStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+              </div>
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Last N days</div>
+                <input id="fltDays" type="number" value="30" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+              </div>
+              <div class="rounded-2xl bg-white/5 ring-soft p-4">
+                <div class="text-xs muted2">Min grade</div>
+                <select id="fltGrade" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3 flex gap-3">
+              <button id="btnApplyFilters" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Apply</button>
+              <button id="btnResetFilters" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Reset</button>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="viewSettings" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+          <div class="text-sm muted2">Keep it boring. Boring works.</div>
+          <div class="text-2xl font-semibold mt-1">Settings</div>
+
+          <div class="mt-5 grid lg:grid-cols-2 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+              <div class="text-sm font-semibold">Profile</div>
+              <div class="mt-3">
+                <div class="text-xs muted2">Display name</div>
+                <input id="setName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., Bipul" />
+              </div>
+              <div class="mt-3 flex gap-3">
+                <button id="btnLogout" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Logout</button>
+                <button id="btnSaveProfile" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Save</button>
+                <div id="profileSaved" class="text-sm muted2 self-center"></div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+              <div class="text-sm font-semibold">Notifications</div>
+              <div class="text-sm muted2 mt-1">In-app reminders; browser notifications optional.</div>
+              <label class="mt-3 flex items-center gap-2 text-sm">
+                <input id="setNotifDaily" type="checkbox" class="accent-accent" />
+                <span class="muted">Remind me to complete Daily Review</span>
+              </label>
+              <label class="mt-2 flex items-center gap-2 text-sm">
+                <input id="setNotifRisk" type="checkbox" class="accent-accent" />
+                <span class="muted">Warn when near daily loss limit</span>
+              </label>
+              <div class="mt-3 flex gap-3">
+                <button id="btnEnableBrowserNotif" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Enable browser notifications</button>
+                <div id="notifStatus" class="text-sm muted2 self-center"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+            <div class="text-sm font-semibold">Data</div>
+            <div class="text-sm muted2">Synced to Supabase when logged in. Local cache is kept for speed/offline.</div>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button id="btnExport" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Export JSON</button>
+              <label class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium cursor-pointer">
+                Import JSON
+                <input id="importFile" type="file" accept="application/json" class="hidden" />
+              </label>
+              <button id="btnResetAll" class="tap px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold">Reset all data</button>
+            </div>
+            <div id="dataMsg" class="text-sm muted2 mt-2"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="safe-bottom fixed bottom-0 left-0 right-0 bg-zinc-950/80 sheet border-t hair">
+      <div class="max-w-4xl mx-auto px-4 py-2 grid grid-cols-5 gap-2">
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1 active" data-tab="core">
+          <span class="text-base">✓</span><span>Home</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="goals">
+          <span class="text-base">🎯</span><span>Goals</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="review">
+          <span class="text-base">📝</span><span>Review</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="insights">
+          <span class="text-base">📈</span><span>Insights</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="settings">
+          <span class="text-base">⚙️</span><span>Settings</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Sheets -->
+  <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/60 z-40"></div>
+
+  <!-- Pre-trade Checklist Sheet -->
+  <div id="sheetChecklist" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Pre-trade checklist</div>
+            <div class="text-lg font-semibold">Decide like a machine.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="ckStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence (0–100)</div>
+            <input id="ckConfidence" type="number" min="0" max="100" value="70" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Score</div>
+              <div class="text-sm muted2">Based on rule weights.</div>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-semibold" id="ckScore">0%</div>
+              <div class="text-sm muted2" id="ckGrade">Grade: D</div>
+            </div>
+          </div>
+          <div class="mt-3 h-2 rounded-full bg-white/5 overflow-hidden">
+            <div id="ckBar" class="h-full bg-accent/60" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="text-sm font-semibold">Rules</div>
+          <div class="text-sm muted2">Answer honestly. The market won’t.</div>
+          <div class="mt-3 space-y-2 max-h-56 overflow-auto pr-1" id="ckRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnProceedTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">
+            Proceed to log trade
+          </button>
+          <div class="text-sm muted2 self-center" id="ckHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Trade Sheet -->
+  <div id="sheetTrade" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Trade intent</div>
+            <div class="text-lg font-semibold">Log fast. Execute clean.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="tStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Symbol</div>
+            <input id="tSymbol" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., NQ, AAPL" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Setup</div>
+            <input id="tSetup" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., ORB, Reversal" />
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Session</div>
+            <select id="tSession" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+              <option>Pre-market</option>
+              <option selected>Regular</option>
+              <option>After-hours</option>
+            </select>
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Risk ($)</div>
+            <input id="tRisk" type="number" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., 200" />
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence</div>
+            <input id="tConfidence" type="number" min="0" max="100" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">Notes (optional)</div>
+            <textarea id="tNotes" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="What must be true for this trade to be valid?"></textarea>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Trade screenshots <span class="text-xs muted2">(required)</span></div>
+              <div class="text-sm muted2">Upload at least 1 image. This is your proof and context.</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <input id="tImages" type="file" accept="image/*" multiple class="w-full text-sm" />
+            <div class="text-xs muted2 mt-2">Tip: upload your entry/exit chart. You can add multiple.</div>
+          </div>
+          <div id="tImgPreview" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">Checklist score</div>
+            <div class="text-sm muted2" id="tScoreMeta">Not run yet</div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-semibold" id="tScore">—</div>
+            <div class="text-sm muted2" id="tGrade">Grade: —</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save trade</button>
+          <div id="tradeHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Sheet -->
+  <div id="sheetReview" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Post-trade review</div>
+            <div class="text-lg font-semibold" id="rvTitle">Trade</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Outcome</div>
+            <select id="rvOutcome" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25">
+              <option value="win">Win</option>
+              <option value="loss">Loss</option>
+              <option value="breakeven">Breakeven</option>
+            </select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Realized R</div>
+            <input id="rvR" type="number" step="0.01" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., 1.25" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Mistakes (tap to toggle)</div>
+          <div class="text-sm muted2">Honesty is the edge.</div>
+          <div class="mt-3 flex flex-wrap gap-2" id="rvMistakes"></div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">One-sentence lesson</div>
+          <div class="text-sm muted2">What will you do differently next time?</div>
+          <textarea id="rvLesson" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: If VWAP is in front of me, I pass the breakout."></textarea>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Screenshots</div>
+          <div class="text-sm muted2">Tap to open in a new tab.</div>
+          <div id="rvImgs" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveReview" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save review</button>
+          <div id="rvHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Strategy Sheet -->
+  <div id="sheetStrategy" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Strategy</div>
+            <div class="text-lg font-semibold">Rules + weights</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">Strategy name</div>
+            <input id="stName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="e.g., ORB + VWAP filter" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Rules</div>
+              <div class="text-sm muted2">Each rule has a weight (importance).</div>
+            </div>
+            <button id="btnAddRule" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Add rule</button>
+          </div>
+          <div class="mt-3 space-y-2" id="stRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveStrategy" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save strategy</button>
+          <div id="stHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Review Sheet -->
+  <div id="sheetDaily" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Daily Review</div>
+            <div class="text-lg font-semibold">Close the loop.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">How was your execution?</div>
+          <div class="text-sm muted2">Be brief. Be honest.</div>
+          <textarea id="drText" rows="3" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: Waited for A setups. One revenge impulse, stopped early."></textarea>
+          <div class="mt-3 flex items-center justify-between">
+            <div class="text-sm muted2" id="drMeta">Today</div>
+            <button id="btnSaveDaily" class="tap px-4 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save</button>
+          </div>
+
+          <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-sm font-semibold">Past daily reviews</div>
+            <div class="text-sm muted2">Latest entries show here.</div>
+            <div id="drHistory" class="mt-3 space-y-2"></div>
+          </div>
+          <div id="drHint" class="text-sm muted2 mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Light confetti (simple) -->
+  <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50">
+    <div class="rounded-2xl bg-zinc-900/90 ring-soft shadow-soft px-4 py-3 text-sm">
+      <span id="toastText">Saved</span>
+    </div>
+  </div>
+
+  
+  
+
+  <script type="module" src="./assets/js/main.js?v=1"></script>
+</body>
+</html>
