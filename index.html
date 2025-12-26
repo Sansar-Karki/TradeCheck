@@ -32,44 +32,6 @@
     .muted { color: rgba(255,255,255,.72); }
     .muted2 { color: rgba(255,255,255,.55); }
     .hair { border-color: rgba(255,255,255,.10); }
-/* iOS + small-screen fixes */
-    html, body { overflow-x: hidden; max-width: 100%; overscroll-behavior-x: none; }
-    .sheet { -webkit-overflow-scrolling: touch; }
-    .navbtn { min-height: 52px; }
-    canvas { display: block; max-width: 100%; }
-/* iPhone SE tweaks */
-    * { box-sizing: border-box; }
-    img, video, canvas { max-width: 100%; height: auto; }
-    input, select, textarea { max-width: 100%; }
-    .maxw-screen { max-width: 100vw; }
-    @media (max-width: 390px){
-      header { padding-left: 1rem !important; padding-right: 1rem !important; }
-      main { padding-left: 1rem !important; padding-right: 1rem !important; padding-bottom: 9.5rem !important; }
-      .rounded-3xl { border-radius: 1.25rem !important; }
-      .rounded-2xl { border-radius: 1rem !important; }
-      .p-6 { padding: 1rem !important; }
-      .p-5 { padding: 0.875rem !important; }
-      .px-5 { padding-left: 1rem !important; padding-right: 1rem !important; }
-      .pt-5 { padding-top: 1rem !important; }
-      .pb-3 { padding-bottom: 0.75rem !important; }
-      .text-2xl { font-size: 1.35rem !important; line-height: 1.75rem !important; }
-      .text-4xl { font-size: 2rem !important; line-height: 2.25rem !important; }
-      .gap-4 { gap: 0.75rem !important; }
-      .gap-3 { gap: 0.625rem !important; }
-      .navbtn { min-height: 56px; }
-      .navbtn span.text-base { font-size: 1.05rem !important; }
-      .navbtn span { line-height: 1.1; }
-      .sheet .max-h-56 { max-height: 45vh !important; }
-      .sheet textarea { font-size: 16px !important; } /* prevent iOS zoom on focus */
-      .sheet input, .sheet select { font-size: 16px !important; } /* prevent iOS zoom on focus */
-    }
-/* Sheet scroll + safe-area top */
-    .safe-top { padding-top: max(env(safe-area-inset-top), 0px); }
-    .sheet-panel { max-height: calc(100vh - max(env(safe-area-inset-top), 0px) - 8px); overflow-y: auto; }
-    .sheet-panel { -webkit-overflow-scrolling: touch; }
-
-
-
   </style>
 
   <script>
@@ -124,10 +86,10 @@
   </div>
 
   <!-- App Shell -->
-  <div id="appShell" class="min-h-screen flex flex-col hidden maxw-screen">
+  <div id="appShell" class="min-h-screen flex flex-col hidden">
     <!-- Top bar (quiet) -->
-    <header class="px-5 pt-5 pb-3 safe-top">
-      <div class="flex items-center justify-between flex-wrap">
+    <header class="px-5 pt-5 pb-3">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="h-10 w-10 rounded-2xl bg-white/5 ring-soft grid place-items-center">✓</div>
           <div>
@@ -140,10 +102,10 @@
     </header>
 
     <!-- Main -->
-    <main class="flex-1 px-5 pb-32 space-y-6">
+    <main class="flex-1 px-5 pb-24 space-y-6">
       <!-- CORE -->
       <section id="viewCore" class="space-y-6">
-        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
           <div class="text-sm muted2" id="greeting">Good morning</div>
           <div class="text-2xl font-semibold mt-1">Trade your plan. Nothing else matters.</div>
           <div class="muted mt-2"> </div>
@@ -164,7 +126,7 @@
                 <div class="text-sm font-semibold">Today</div>
                 <div class="text-sm muted2" id="todayMeta">No trades logged yet</div>
               </div>
-              <button id="btnQuickAdd2" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Quick add</button>
+              <button id="btnQuickAdd" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Quick add</button>
             </div>
             <div class="mt-3 space-y-2" id="todayTrades"></div>
           </div>
@@ -173,51 +135,7 @@
 
         
 
-        
-          <details class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
-            <summary class="cursor-pointer list-none flex items-center justify-between">
-              <div>
-                <div class="text-sm font-semibold">Reflection prompts</div>
-                <div class="text-sm muted2">Set 3 prompts per mistake tag.</div>
-              </div>
-              <div class="text-sm muted2">▾</div>
-            </summary>
-
-            <div class="mt-4 grid sm:grid-cols-2 gap-3">
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Mistake tag</div>
-                <select id="refTag" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Preview</div>
-                <div class="mt-2 text-sm muted2" id="refPreview">Pick a tag</div>
-              </div>
-            </div>
-
-            <div class="mt-3 grid gap-3">
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 1</div>
-                <input id="refP1" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What was the real trigger?" />
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 2</div>
-                <input id="refP2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What rule would have stopped it?" />
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 3</div>
-                <input id="refP3" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What will you do next time?" />
-              </div>
-            </div>
-
-            <div class="mt-3 flex flex-wrap gap-3">
-              <button id="btnSavePrompts" class="tap px-4 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save prompts</button>
-              <button id="btnResetPrompts" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Reset to defaults</button>
-              <div id="refSaved" class="text-sm muted2 self-center"></div>
-            </div>
-          </details>
-
-    
-          <div class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+        <div class="rounded-3xl bg-white/3 ring-soft p-5">
           <div class="flex items-center justify-between">
             <div>
               <div class="text-sm font-semibold">Strategies</div>
@@ -231,7 +149,7 @@
 
       <!-- GOALS -->
       <section id="viewGoals" class="space-y-6 hidden">
-        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
           
           <div class="text-2xl font-semibold mt-1">Goals</div>
           <div class="mt-4 flex gap-2">
@@ -246,7 +164,7 @@
 
       <!-- REVIEW -->
       <section id="viewReview" class="space-y-6 hidden">
-        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
           <div class="text-sm muted2">Turn trades into lessons.</div>
           <div class="text-2xl font-semibold mt-1">Post-trade review</div>
 
@@ -270,21 +188,17 @@
 
       <!-- INSIGHTS -->
       <section id="viewInsights" class="space-y-6 hidden">
-        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
           <div class="text-sm muted2">Reflection, not obsession.</div>
-          <div class="text-2xl font-semibold mt-1">Analytics</div>
+          <div class="text-2xl font-semibold mt-1">Insights</div>
 
-          <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden md:col-span-2">
+          <div class="mt-4 grid lg:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 lg:col-span-2">
               <div class="text-sm font-semibold">R curve</div>
               <div class="text-sm muted2">Cumulative R across reviewed trades.</div>
-              <div class="mt-4 relative w-full overflow-hidden">
-                <div class="relative w-full h-40">
-                  <canvas id="chartR" class="w-full max-w-full"></canvas>
-                </div>
-              </div>
+              <div class="mt-4"><canvas id="chartR" height="120"></canvas></div>
             </div>
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
               <div class="text-sm font-semibold">Discipline</div>
               <div class="text-sm muted2">A-grade share this week.</div>
               <div class="mt-4 text-4xl font-semibold" id="discPct">0%</div>
@@ -292,15 +206,15 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden md:col-span-2">
+          <div class="grid lg:grid-cols-3 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5 lg:col-span-2">
               <div class="text-sm font-semibold">Top mistake</div>
               <div class="text-sm muted2">Most common tag in last 30 days.</div>
               <div class="mt-4 text-xl font-semibold" id="topMistake">None</div>
               <div class="mt-1 text-sm muted2" id="topMistakeMeta"></div>
             </div>
 
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
               <div class="text-sm font-semibold">Quick stats</div>
               <div class="mt-3 space-y-2 text-sm">
                 <div class="flex justify-between"><span class="muted2">Trades</span><span id="statTrades">0</span></div>
@@ -311,7 +225,7 @@
             </div>
           </div>
 
-          <details class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+          <details class="rounded-3xl bg-white/3 ring-soft p-5">
             <summary class="cursor-pointer list-none flex items-center justify-between">
               <div>
                 <div class="text-sm font-semibold">Refine</div>
@@ -348,12 +262,12 @@
 
       <!-- SETTINGS -->
       <section id="viewSettings" class="space-y-6 hidden">
-        <div class="rounded-3xl bg-white/5 ring-soft p-6 overflow-hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
           <div class="text-sm muted2">Keep it boring. Boring works.</div>
           <div class="text-2xl font-semibold mt-1">Settings</div>
 
           <div class="mt-5 grid lg:grid-cols-2 gap-4">
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
               <div class="text-sm font-semibold">Profile</div>
               <div class="mt-3">
                 <div class="text-xs muted2">Display name</div>
@@ -366,7 +280,7 @@
               </div>
             </div>
 
-            <div class="rounded-3xl bg-white/5 ring-soft p-5 overflow-hidden">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
               <div class="text-sm font-semibold">Notifications</div>
               <div class="text-sm muted2 mt-1">In-app reminders; browser notifications optional.</div>
               <label class="mt-3 flex items-center gap-2 text-sm">
@@ -384,51 +298,7 @@
             </div>
           </div>
 
-          
-          <details class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
-            <summary class="cursor-pointer list-none flex items-center justify-between">
-              <div>
-                <div class="text-sm font-semibold">Reflection prompts</div>
-                <div class="text-sm muted2">Set 3 prompts per mistake tag.</div>
-              </div>
-              <div class="text-sm muted2">▾</div>
-            </summary>
-
-            <div class="mt-4 grid sm:grid-cols-2 gap-3">
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Mistake tag</div>
-                <select id="refTag" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25"></select>
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Preview</div>
-                <div class="mt-2 text-sm muted2" id="refPreview">Pick a tag</div>
-              </div>
-            </div>
-
-            <div class="mt-3 grid gap-3">
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 1</div>
-                <input id="refP1" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What was the real trigger?" />
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 2</div>
-                <input id="refP2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What rule would have stopped it?" />
-              </div>
-              <div class="rounded-2xl bg-white/5 ring-soft p-4">
-                <div class="text-xs muted2">Prompt 3</div>
-                <input id="refP3" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" placeholder="Example: What will you do next time?" />
-              </div>
-            </div>
-
-            <div class="mt-3 flex flex-wrap gap-3">
-              <button id="btnSavePrompts" class="tap px-4 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save prompts</button>
-              <button id="btnResetPrompts" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Reset to defaults</button>
-              <div id="refSaved" class="text-sm muted2 self-center"></div>
-            </div>
-          </details>
-
-    
-          <div class="rounded-3xl bg-white/3 ring-soft p-5 overflow-hidden">
+          <div class="rounded-3xl bg-white/3 ring-soft p-5">
             <div class="text-sm font-semibold">Data</div>
             <div class="text-sm muted2">Synced to Supabase when logged in. Local cache is kept for speed/offline.</div>
             <div class="mt-3 flex flex-wrap gap-3">
@@ -451,8 +321,14 @@
         <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1 active" data-tab="core">
           <span class="text-base">✓</span><span>Home</span>
         </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="goals">
+          <span class="text-base">🎯</span><span>Goals</span>
+        </button>
         <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="review">
           <span class="text-base">📝</span><span>Review</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="insights">
+          <span class="text-base">📈</span><span>Insights</span>
         </button>
         <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="settings">
           <span class="text-base">⚙️</span><span>Settings</span>
@@ -468,7 +344,7 @@
   <div id="sheetChecklist" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0" data-close-sheet="1"></div>
     <div class="absolute left-0 right-0 bottom-0 safe-bottom">
-      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-sm muted2">Pre-trade checklist</div>
@@ -524,7 +400,7 @@
   <div id="sheetTrade" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0" data-close-sheet="1"></div>
     <div class="absolute left-0 right-0 bottom-0 safe-bottom">
-      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-sm muted2">Trade intent</div>
@@ -609,7 +485,7 @@
   <div id="sheetReview" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0" data-close-sheet="1"></div>
     <div class="absolute left-0 right-0 bottom-0 safe-bottom">
-      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-sm muted2">Post-trade review</div>
@@ -664,7 +540,7 @@
   <div id="sheetStrategy" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0" data-close-sheet="1"></div>
     <div class="absolute left-0 right-0 bottom-0 safe-bottom">
-      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-sm muted2">Strategy</div>
@@ -703,7 +579,7 @@
   <div id="sheetDaily" class="hidden fixed inset-0 z-50">
     <div class="absolute inset-0" data-close-sheet="1"></div>
     <div class="absolute left-0 right-0 bottom-0 safe-bottom">
-      <div class="mx-auto w-full max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5 sheet-panel">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-sm muted2">Daily Review</div>
@@ -712,21 +588,6 @@
           <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
         </div>
 
-        
-        <div id="drFocusBox" class="hidden mb-4 rounded-2xl bg-white/5 ring-soft p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <div class="text-sm font-semibold">Tonight’s reflection focus</div>
-              <div class="text-sm muted2">Based on mistakes you tagged in trade reviews today.</div>
-            </div>
-            <button id="btnClearFocus" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Clear</button>
-          </div>
-          <div id="drFocusTags" class="mt-3 flex flex-wrap gap-2"></div>
-          <div id="drFocusPrompts" class="mt-3 space-y-2 text-sm"></div>
-          <div id="drFocusAnswers" class="mt-3 space-y-3"></div>
-          <div class="mt-3 text-xs muted2">Tip: edit your prompts in Settings → Reflection prompts.</div>
-        </div>
-    
         <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
           <div class="text-sm font-semibold">How was your execution?</div>
           <div class="text-sm muted2">Be brief. Be honest.</div>
@@ -777,10 +638,6 @@
       strategies: [],
       trades: [],
       dailyReviews: {},
-      journalEntries: {},
-
-      reflectionPrompts: {},
-      reflectionFocus: {},
     };
 
     const getLSKey = () => currentUserId ? `tradecheck.v3_${currentUserId}` : `tradecheck.v3_guest`;
@@ -823,24 +680,6 @@
     }
 
     let S = structuredClone(defaults);
-
-    // Chart.js instances (avoid iOS canvas leaks)
-    window.__charts = window.__charts || {};
-    function destroyChart(key){ try{ if(window.__charts[key]){ window.__charts[key].destroy(); window.__charts[key]=null; } }catch(e){} }
-    function chartBaseOptions(){
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        resizeDelay: 100,
-        layout: { padding: 0 },
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { maxRotation: 0, autoSkip: true } },
-          y: { ticks: { precision: 0 } }
-        }
-      };
-    }
-
 
     // -----------------------------
     // UI helpers
@@ -964,10 +803,6 @@
       $("sheetBackdrop").classList.remove("hidden");
       $(id).classList.remove("hidden");
       document.body.classList.add("overflow-hidden");
-      try{
-        const panel = $(id).querySelector(".sheet-panel") || $(id).querySelector(".sheet");
-        if(panel) panel.scrollTop = 0;
-      }catch(e){}
     }
     function closeSheets(){
       $("sheetBackdrop").classList.add("hidden");
@@ -985,44 +820,24 @@
     // -----------------------------
     const views = {
       core: $("viewCore"),
+      goals: $("viewGoals"),
       review: $("viewReview"),
+      insights: $("viewInsights"),
       settings: $("viewSettings")
     };
-
     function setTab(tab){
-      // show/hide views safely
-      Object.keys(views).forEach(k=>{
-        const el = views[k];
-        if(!el) return;
-        el.classList.toggle("hidden", k!==tab);
-      });
-
-      // nav active state
+      Object.keys(views).forEach(k=> views[k].classList.toggle("hidden", k!==tab));
       document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
-
-      // title
-      const titleMap = { core:"Home", review:"Review", settings:"Settings" };
-      const tt = $("topTitle");
-      if(tt) tt.textContent = titleMap[tab] || (tab ? tab[0].toUpperCase()+tab.slice(1) : "App");
-
-      // resize any charts if present
-      try{
-        if(window.__charts){
-          Object.values(window.__charts).forEach(c=> c && c.resize && c.resize());
-        }
-      }catch(e){}
-
-      // scroll to top without crashing iOS standalone
-      try{ window.scrollTo(0,0); }catch(e){}
-    }
-);
-
+      $("topTitle").textContent = tab === "core" ? "Core" : tab[0].toUpperCase()+tab.slice(1);
+      window.scrollTo({top:0, behavior:"smooth"});
+      if(tab==="insights") renderInsights();
+      renderGoals();
       renderDailyHistory();
-      
+      if(tab==="goals") renderGoals();
+      if(tab==="review") renderReviewTab();
+      if(tab==="settings") renderSettings();
+    }
     document.querySelectorAll(".navbtn").forEach(btn=> btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
-
-    window.addEventListener("resize", ()=>{ try{ if(chartR && chartR.resize) chartR.resize(); Object.values(window.__charts||{}).forEach(c=>c&&c.resize&&c.resize()); }catch(e){} });
-
 
     // -----------------------------
     // Strategy CRUD
@@ -1143,8 +958,6 @@
       syncStrategySelects();
       updateCoreStatus();
     });
-
-    $("btnQuickAdd2")?.addEventListener("click", ()=> openTradeSheet(false));
 
     // -----------------------------
     // Checklist
@@ -1391,199 +1204,12 @@
       updateCoreStatus();
       renderTodayTrades();
       renderReviewTab();
-      }
+      renderGoals();
+    }
 
     // -----------------------------
     // Review
     // -----------------------------
-    
-    const defaultReflectionPrompts = {
-      "FOMO": [
-        "What was I afraid of missing, and was it real or imagined?",
-        "What would a perfect entry have looked like, and did I have it?",
-        "What exact rule can I use to force a pause next time?"
-      ],
-      "Revenge": [
-        "What emotion was I trying to fix with the next trade?",
-        "What was the first moment I knew I should stop?",
-        "What is my hard stop action when I feel that spike?"
-      ],
-      "Ignored VWAP": [
-        "What did VWAP signal in that moment (support, resistance, magnet)?",
-        "What did price do the last time it touched VWAP today?",
-        "What filter will I apply so I do not trade into VWAP again?"
-      ],
-      "No HTF bias": [
-        "What was the higher timeframe direction and key level?",
-        "What did I ignore that was obvious on the 15m or 1h?",
-        "What is my 10-second HTF checklist before entry?"
-      ],
-      "Oversized": [
-        "Why did I size up (confidence, boredom, chasing)?",
-        "What would correct size have been, and what would that feel like?",
-        "What sizing rule will I enforce without exception?"
-      ],
-      "Late entry": [
-        "What did I miss that made me chase?",
-        "What is the earliest valid trigger I should wait for next time?",
-        "What is my ‘too late’ rule (distance from level/VWAP/ORH)?"
-      ],
-      "No plan": [
-        "What was my entry trigger, stop, and target before clicking?",
-        "What information was missing that I should require next time?",
-        "What is the smallest plan template I can write in 10 seconds?"
-      ],
-      "Moved stop (mental)": [
-        "What did I tell myself to justify moving it?",
-        "If I had to keep the stop, what would I do instead (smaller size, no trade)?",
-        "What hard rule or friction can prevent stop moving?"
-      ],
-      "Traded chop": [
-        "What were the signs of chop (range, wicks, VWAP ping-pong)?",
-        "What condition would have told me to stand down?",
-        "What alternative action can I take when it is choppy (walk away, wait ORB)?"
-      ],
-      "Didn’t wait retest": [
-        "What was my evidence the breakout would hold without retest?",
-        "What did price usually do in similar setups today?",
-        "What rule will force retest confirmation next time?"
-      ],
-      "Overtraded": [
-        "What was I trying to achieve by taking more trades today?",
-        "Which trade was the first one that should not have happened?",
-        "What is my daily ‘stop trading’ trigger (time, number, emotion, PnL)?"
-      ]
-    };
-
-    function getPromptsForTag(tag){
-      const custom = S.reflectionPrompts?.[tag];
-      const arr = Array.isArray(custom) ? custom : null;
-      const base = defaultReflectionPrompts[tag] || [
-        "What happened, in one sentence?",
-        "What rule would have prevented it?",
-        "What will I do differently next time?"
-      ];
-      // sanitize to exactly 3
-      const out = (arr && arr.filter(x=> String(x||"").trim().length)) ? arr : base;
-      return [out[0]||base[0], out[1]||base[1], out[2]||base[2]];
-    }
-
-    function setReflectionFocusForToday(tags){
-      const today = todayISO();
-      const uniq = Array.from(new Set((tags||[]).filter(Boolean)));
-      const top3 = uniq.slice(0,3);
-      S.reflectionFocus = S.reflectionFocus || {};
-      S.reflectionFocus[today] = { tags: top3, ts: Date.now() };
-      saveSmart(S);
-    }
-
-    function clearReflectionFocus(dateISO){
-      const k = dateISO || todayISO();
-      if(S.reflectionFocus && S.reflectionFocus[k]){
-        delete S.reflectionFocus[k];
-        saveSmart(S);
-      }
-    }
-
-    function renderDailyFocus(dateISO){
-      const box = $("drFocusBox"); if(!box) return;
-      const tagsWrap = $("drFocusTags"); if(!tagsWrap) return;
-      const promptsWrap = $("drFocusPrompts"); if(!promptsWrap) return;
-      const answersWrap = $("drFocusAnswers"); if(!answersWrap) return;
-
-      const k = dateISO || todayISO();
-      const focus = S.reflectionFocus?.[k];
-      if(!focus || !Array.isArray(focus.tags) || !focus.tags.length){
-        box.classList.add("hidden");
-        tagsWrap.innerHTML = "";
-        promptsWrap.innerHTML = "";
-        answersWrap.innerHTML = "";
-        return;
-      }
-      box.classList.remove("hidden");
-      tagsWrap.innerHTML = "";
-      promptsWrap.innerHTML = "";
-      answersWrap.innerHTML = "";
-
-      // load existing journal entry
-      const existing = (S.journalEntries && S.journalEntries[k]) ? S.journalEntries[k] : null;
-      const existingByTag = {};
-      if(existing && Array.isArray(existing.prompts)){
-        existing.prompts.forEach(p=> { if(p && p.tag) existingByTag[p.tag] = p; });
-      }
-
-      focus.tags.forEach((tag, idx)=>{
-        const chip = document.createElement("div");
-        chip.className = "chip px-3 py-2 rounded-xl text-sm bg-white/5";
-        chip.textContent = tag;
-        tagsWrap.appendChild(chip);
-
-        const prompts = getPromptsForTag(tag);
-
-        const block = document.createElement("div");
-        block.className = "rounded-2xl bg-white/3 ring-soft p-3";
-        block.innerHTML = `
-          <div class="text-sm font-semibold">${escapeHtml(tag)}</div>
-          <ul class="mt-2 space-y-1 muted2">
-            <li>• ${escapeHtml(prompts[0])}</li>
-            <li>• ${escapeHtml(prompts[1])}</li>
-            <li>• ${escapeHtml(prompts[2])}</li>
-          </ul>
-        `;
-        promptsWrap.appendChild(block);
-
-        const prev = existingByTag[tag];
-        const a1 = (prev?.answers?.[0] || "");
-        const a2 = (prev?.answers?.[1] || "");
-        const a3 = (prev?.answers?.[2] || "");
-
-        const ans = document.createElement("div");
-        ans.className = "rounded-2xl bg-white/5 ring-soft p-4";
-        ans.innerHTML = `
-          <div class="text-sm font-semibold">Answer: ${escapeHtml(tag)}</div>
-          <div class="mt-3 space-y-3">
-            <div>
-              <div class="text-xs muted2">1</div>
-              <textarea data-jntag="${escapeAttr(tag)}" data-jnidx="0" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" rows="2" placeholder="${escapeAttr(prompts[0])}">${escapeHtml(a1)}</textarea>
-            </div>
-            <div>
-              <div class="text-xs muted2">2</div>
-              <textarea data-jntag="${escapeAttr(tag)}" data-jnidx="1" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" rows="2" placeholder="${escapeAttr(prompts[1])}">${escapeHtml(a2)}</textarea>
-            </div>
-            <div>
-              <div class="text-xs muted2">3</div>
-              <textarea data-jntag="${escapeAttr(tag)}" data-jnidx="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm outline-none focus:border-white/25" rows="2" placeholder="${escapeAttr(prompts[2])}">${escapeHtml(a3)}</textarea>
-            </div>
-          </div>
-        `;
-        answersWrap.appendChild(ans);
-      });
-    }
-      box.classList.remove("hidden");
-      tagsWrap.innerHTML = "";
-      promptsWrap.innerHTML = "";
-
-      focus.tags.forEach(tag=>{
-        const chip = document.createElement("div");
-        chip.className = "chip px-3 py-2 rounded-xl text-sm bg-white/5";
-        chip.textContent = tag;
-        tagsWrap.appendChild(chip);
-
-        const prompts = getPromptsForTag(tag);
-        const block = document.createElement("div");
-        block.className = "rounded-2xl bg-white/3 ring-soft p-3";
-        block.innerHTML = `
-          <div class="text-sm font-semibold">${escapeHtml(tag)}</div>
-          <ul class="mt-2 space-y-1 muted2">
-            <li>• ${escapeHtml(prompts[0])}</li>
-            <li>• ${escapeHtml(prompts[1])}</li>
-            <li>• ${escapeHtml(prompts[2])}</li>
-          </ul>
-        `;
-        promptsWrap.appendChild(block);
-      });
-    }
-
     const MISTAKE_TAGS = [
       "FOMO", "Revenge", "Ignored VWAP", "No HTF bias", "Oversized", "Late entry",
       "No plan", "Moved stop (mental)", "Traded chop", "Didn’t wait retest", "Overtraded"
@@ -1651,9 +1277,6 @@
 
       const mistakes = JSON.parse($("rvMistakes").dataset.sel || "[]");
 
-      // Set tonight’s reflection focus from selected mistakes (top 3)
-      if(Array.isArray(mistakes) && mistakes.length) setReflectionFocusForToday(mistakes);
-
       t.reviewed = true;
       t.review = { outcome, r: rVal, mistakes, lesson, ts: Date.now() };
       saveSmart(S);
@@ -1666,7 +1289,10 @@
       updateCoreStatus();
       renderTodayTrades();
       renderReviewTab();
-      if(!views.insights.classList.contains("hidden")) renderDailyHistory();
+      renderGoals();
+      if(!views.insights.classList.contains("hidden")) renderInsights();
+      renderGoals();
+      renderDailyHistory();
     }
 
     // -----------------------------
@@ -1696,7 +1322,6 @@
           const k = btn.getAttribute("data-dr-open");
           $("drMeta").textContent = "Date: " + k;
           $("drText").value = (S.dailyReviews?.[k]?.text) || "";
-          renderDailyFocus(k);
           openSheet("sheetDaily");
         });
       });
@@ -1708,134 +1333,18 @@ function openDailyReview(){
       openSheet("sheetDaily");
     }
     function saveDailyReview(){
-      const d = todayISO();
-      const text = ($("drText").value||"").trim();
-      S.dailyReviews = S.dailyReviews || {};
-      S.journalEntries = S.journalEntries || {};
-
-      // Collect prompt answers if focus exists
-      const focus = S.reflectionFocus?.[d];
-      let prompts = [];
-      if(focus && Array.isArray(focus.tags) && focus.tags.length){
-        const byTag = {};
-        document.querySelectorAll('[data-jntag]').forEach(el=>{
-          const tag = el.getAttribute("data-jntag");
-          const idx = parseInt(el.getAttribute("data-jnidx")||"0",10);
-          byTag[tag] = byTag[tag] || { tag, prompts: getPromptsForTag(tag), answers: ["","",""] };
-          byTag[tag].answers[idx] = (el.value||"").trim();
-        });
-        prompts = Object.values(byTag);
-      }
-
-      S.dailyReviews[d] = { text, ts: Date.now() };
-      // Journal entry stores prompt answers + free text
-      S.journalEntries[d] = { prompts, freeText: text, ts: Date.now() };
-
+      const text = $("drText").value.trim();
+      if(text.length < 10){ $("drHint").textContent = "Write at least one sentence."; return; }
+      S.dailyReviews[todayISO()] = { text, ts: Date.now() };
       saveSmart(S);
-      renderDailyFocus(d);
-      renderJournalList();
-      toast("Saved");
-      closeAllSheets();
+      
+      $("drHint").textContent = "Saved.";
+      toast("Daily review saved");
+      updateCoreStatus();
+      renderGoals();
     }
 
-    
-    $("btnClearFocus")?.addEventListener("click", ()=>{
-      const meta = ($("drMeta")?.textContent || "");
-      const m = meta.match(/Date:\s*([0-9]{4}-[0-9]{2}-[0-9]{2})/);
-      const d = m ? m[1] : todayISO();
-      clearReflectionFocus(d);
-      renderDailyFocus(d);
-      toast("Focus cleared");
-    });
-
-
-    
-    $("btnInsertTomorrowPlan")?.addEventListener("click", ()=>{
-      const tpl = `\n\n=== Tomorrow Plan ===\n1) One rule I will follow no matter what:\n- \n2) My stop trading trigger today:\n- \n3) My A+ setup to hunt:\n- \n4) My no-trade condition:\n- \n`;
-      $("drText").value = (($("drText").value||"").trim() ? $("drText").value + tpl : tpl.trim());
-      toast("Inserted");
-    });
-
-    $("btnInsertWeeklyReview")?.addEventListener("click", ()=>{
-      const tpl = `\n\n=== Weekly Review ===\nWins (what worked):\n- \nLosses (what hurt):\n- \nTop mistake:\n- \nBest setup:\n- \nWorst setup:\n- \nOne rule to add:\n- \nOne rule to remove:\n- \n`;
-      $("drText").value = (($("drText").value||"").trim() ? $("drText").value + tpl : tpl.trim());
-      toast("Inserted");
-    });
-
-    $("btnInsertCoach")?.addEventListener("click", ()=>{
-      const d = todayISO();
-      const tpl = `\n\n=== Coach Summary (${d}) ===\n${(window.__coachText||"Review more trades to unlock coaching insights.")}\n`;
-      $("drText").value = (($("drText").value||"").trim() ? $("drText").value + tpl : tpl.trim());
-      toast("Inserted");
-    });
-
-// -----------------------------
-    // Journal
     // -----------------------------
-    function listJournalDates(){
-      const keys = Object.keys(S.journalEntries || {});
-      keys.sort((a,b)=> (a<b?1:-1));
-      return keys;
-    }
-
-    function renderJournalList(){
-      const wrap = $("jnList");
-      if(!wrap) return;
-      const keys = listJournalDates();
-      if(!keys.length){
-        wrap.innerHTML = `<div class="text-sm muted2">No journal entries yet. Save a Daily Review and it will appear here.</div>`;
-        return;
-      }
-      wrap.innerHTML = "";
-      keys.slice(0,60).forEach(k=>{
-        const entry = S.journalEntries[k];
-        const tags = (entry?.prompts||[]).map(p=> p.tag).filter(Boolean).slice(0,3);
-        const pill = tags.length ? ` • ${tags.join(", ")}` : "";
-        const row = document.createElement("button");
-        row.className = "tap w-full text-left rounded-2xl bg-white/5 hover:bg-white/10 ring-soft p-3";
-        row.innerHTML = `<div class="flex items-center justify-between gap-3 flex-wrap">
-          <div class="text-sm font-semibold">${escapeHtml(k)}<span class="text-sm muted2">${escapeHtml(pill)}</span></div>
-          <div class="text-xs muted2">${entry?.ts ? new Date(entry.ts).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}) : ""}</div>
-        </div>`;
-        row.addEventListener("click", ()=>{
-          // load into Daily Review sheet for editing
-          $("drMeta").textContent = "Date: " + k;
-          $("drText").value = (S.dailyReviews?.[k]?.text) || (S.journalEntries?.[k]?.freeText) || "";
-          renderDailyFocus(k);
-          openSheet("sheetDaily");
-        });
-        wrap.appendChild(row);
-      });
-    }
-
-    $("btnNewJournal")?.addEventListener("click", ()=>{
-      // Open today's daily review
-      openDailyReview();
-    });
-
-    $("btnLoadJournal")?.addEventListener("click", ()=>{
-      const d = $("jnDate").value || "";
-      if(!d){ toast("Pick a date"); return; }
-      $("drMeta").textContent = "Date: " + d;
-      $("drText").value = (S.dailyReviews?.[d]?.text) || (S.journalEntries?.[d]?.freeText) || "";
-      renderDailyFocus(d);
-      openSheet("sheetDaily");
-    });
-
-    $("btnExportJournal")?.addEventListener("click", ()=>{
-      const keys = listJournalDates();
-      const payload = keys.map(k=> ({ date:k, ...S.journalEntries[k] }));
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "tradecheck_journal.json";
-      a.click();
-      setTimeout(()=> URL.revokeObjectURL(a.href), 1200);
-      toast("Exported");
-    });
-
-
-// -----------------------------
     // Goals
     // -----------------------------
     function renderGoals(){
@@ -1859,11 +1368,13 @@ function openDailyReview(){
         cb.addEventListener("change", ()=>{
           g.done = cb.checked;
           saveSmart(S);
-          });
+          renderGoals();
+        });
         del.addEventListener("click", ()=>{
           S.goals = S.goals.filter(x=> x.id !== g.id);
           saveSmart(S);
-          });
+          renderGoals();
+        });
         list.appendChild(row);
       });
     }
@@ -1952,23 +1463,65 @@ function openDailyReview(){
       el.textContent = done ? `${done} trade${done>1?"s":""} logged today` : "No trades logged today";
     }
 
-          const ctx = $("chartR").getContext("2d");
+    // -----------------------------
+    // Insights (Chart.js)
+    // -----------------------------
+    let chartR = null;
+    let activeFilters = { strategyId:"", days:30, grade:"D" };
+
+    function gradeMinPass(grade, min){
+      const order = { "A":4, "B":3, "C":2, "D":1 };
+      return (order[grade]||1) >= (order[min]||1);
+    }
+
+    function filteredReviewedTrades(){
+      const days = parseInt(activeFilters.days||30,10);
+      const cutoff = Date.now() - days*24*60*60*1000;
+      return S.trades
+        .filter(t=> t.reviewed && t.review && t.review.ts >= cutoff)
+        .filter(t=> !activeFilters.strategyId || t.strategyId === activeFilters.strategyId)
+        .filter(t=> gradeMinPass(t.preGrade || "D", activeFilters.grade || "D"))
+        .slice()
+        .reverse();
+    }
+
+    function renderInsights(){
+      // filters UI
+      syncStrategySelects();
+      $("fltDays").value = String(activeFilters.days || 30);
+      $("fltGrade").value = activeFilters.grade || "D";
+      $("fltStrategy").value = activeFilters.strategyId || "";
+
+      const reviewed = filteredReviewedTrades();
+
+      // R curve data
+      let cum = 0;
+      const labels = [];
+      const data = [];
+      reviewed.forEach((t,i)=>{
+        cum += (t.review?.r || 0);
+        labels.push(t.date);
+        data.push(cum);
+      });
+
+      if(chartR){
+        chartR.destroy();
+        chartR = null;
+      }
+      const ctx = $("chartR").getContext("2d");
       chartR = new Chart(ctx, {
         type: "line",
         data: { labels, datasets: [{ label:"Cumulative R", data, tension:.25, borderWidth:2, pointRadius:0 }] },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          resizeDelay: 100,
-          layout: { padding: 0 },
           plugins: { legend: { display:false } },
           scales: {
-            x: { ticks: { color:"rgba(255,255,255,.55)", maxRotation: 0, autoSkip: true }, grid: { color:"rgba(255,255,255,.06)" } },
-            y: { ticks: { color:"rgba(255,255,255,.55)", precision: 0 }, grid: { color:"rgba(255,255,255,.06)" } }
+            x: { ticks: { color:"rgba(255,255,255,.55)" }, grid: { color:"rgba(255,255,255,.06)" } },
+            y: { ticks: { color:"rgba(255,255,255,.55)" }, grid: { color:"rgba(255,255,255,.06)" } }
           }
         }
       });
-      try{ window.__charts.chartR = chartR; }catch(e){}
 
       // discipline (A-grade share in last 7 days, reviewed)
       const last7 = reviewedTradesWithin(7);
@@ -1997,205 +1550,26 @@ function openDailyReview(){
       $("statReviewRate").textContent = S.trades.length ? Math.round((revCount/S.trades.length)*100)+"%" : "0%";
     }
 
-    activeFilters.grade = $("fltGrade").value || "D";
+    $("btnApplyFilters").addEventListener("click", ()=>{
+      activeFilters.strategyId = $("fltStrategy").value || "";
+      activeFilters.days = clamp(parseInt($("fltDays").value||"30",10), 1, 365);
+      activeFilters.grade = $("fltGrade").value || "D";
+      renderInsights();
+      renderGoals();
       renderDailyHistory();
       toast("Filters applied");
     });
-    toast("Filters reset");
+    $("btnResetFilters").addEventListener("click", ()=>{
+      activeFilters = { strategyId:"", days:30, grade:"D" };
+      renderInsights();
+      renderGoals();
+      renderDailyHistory();
+      toast("Filters reset");
     });
 
-    
     // -----------------------------
-    // Analytics (Coach)
-    // -----------------------------
-    function parseISO(d){ return new Date(d+"T00:00:00"); }
-    function daysAgoISO(n){
-      const d = new Date(); d.setHours(0,0,0,0);
-      d.setDate(d.getDate()-n);
-      return d.toISOString().slice(0,10);
-    }
-    function tradesWithinDays(n){
-      const cutoff = (n>=9999) ? "0000-01-01" : daysAgoISO(n);
-      return (S.trades||[]).filter(t=> (t.date||"") >= cutoff);
-    }
-    function reviewedTradesWithinDays(n){
-      return tradesWithinDays(n).filter(t=> t.reviewed && t.review && typeof t.review.r === "number");
-    }
-
-    function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
-
-    function renderAnalytics(){
-      const days = clamp(parseInt($("anDays")?.value||"30",10), 1, 9999);
-      const trades = reviewedTradesWithinDays(days);
-
-      // Top mistakes
-      const counts = {};
-      trades.forEach(t=>{
-        const ms = t.review?.mistakes || [];
-        ms.forEach(x=> { if(x) counts[x] = (counts[x]||0)+1; });
-      });
-      const top = Object.entries(counts).sort((a,b)=> b[1]-a[1]).slice(0,7);
-      const wrapM = $("anMistakes");
-      if(wrapM){
-        wrapM.innerHTML = top.length ? "" : `<div class="text-sm muted2">No mistake tags yet. Review trades and tag mistakes.</div>`;
-        top.forEach(([tag,c])=>{
-          const row = document.createElement("div");
-          row.className = "flex items-center justify-between rounded-2xl bg-white/5 ring-soft px-3 py-2";
-          row.innerHTML = `<div class="text-sm font-semibold">${escapeHtml(tag)}</div><div class="text-sm muted2">${c}</div>`;
-          wrapM.appendChild(row);
-        });
-      }
-
-      // Avg R by strategy/setup
-      const byStrat = {};
-      trades.forEach(t=>{
-        const key = (t.strategy || "Unassigned").trim() || "Unassigned";
-        byStrat[key] = byStrat[key] || [];
-        byStrat[key].push(t.review.r);
-      });
-      const stratRows = Object.entries(byStrat).map(([k,arr])=> ({ k, n: arr.length, ar: avg(arr) }))
-        .sort((a,b)=> b.ar-a.ar);
-
-      const wrapS = $("anRByStrat");
-      if(wrapS){
-        wrapS.innerHTML = stratRows.length ? "" : `<div class="text-sm muted2">No reviewed trades in this window.</div>`;
-        stratRows.forEach(r=>{
-          const row = document.createElement("div");
-          row.className = "flex items-center justify-between rounded-2xl bg-white/5 ring-soft px-3 py-2";
-          row.innerHTML = `<div><div class="text-sm font-semibold">${escapeHtml(r.k)}</div><div class="text-xs muted2">${r.n} trades</div></div>
-                           <div class="text-sm font-semibold">${(Math.round(r.ar*100)/100).toFixed(2)}R</div>`;
-          wrapS.appendChild(row);
-        });
-      }
-
-      // Best/Worst setup (min 5)
-      const eligible = stratRows.filter(x=> x.n >= 5);
-      const best = eligible[0] || null;
-      const worst = eligible.length ? eligible[eligible.length-1] : null;
-      if($("anBestSetup")) $("anBestSetup").innerHTML = best ? `<div class="text-lg font-semibold">${escapeHtml(best.k)}</div><div class="mt-1 text-sm muted2">${best.n} trades • ${(best.ar).toFixed(2)}R avg</div>` : `<div class="text-sm muted2">Need at least 5 reviewed trades per strategy.</div>`;
-      if($("anWorstSetup")) $("anWorstSetup").innerHTML = worst ? `<div class="text-lg font-semibold">${escapeHtml(worst.k)}</div><div class="mt-1 text-sm muted2">${worst.n} trades • ${(worst.ar).toFixed(2)}R avg</div>` : `<div class="text-sm muted2">Need at least 5 reviewed trades per strategy.</div>`;
-
-      // Rule performance: delta avg R when rule passed vs failed
-      // Use checklist results stored per trade: t.checklist = {id: true/false}
-      const ruleStats = {}; // id -> {pass:[], fail:[]}
-      trades.forEach(t=>{
-        const cl = t.checklist || {};
-        const r = t.review.r;
-        Object.keys(cl).forEach(id=>{
-          ruleStats[id] = ruleStats[id] || { pass:[], fail:[] };
-          (cl[id] ? ruleStats[id].pass : ruleStats[id].fail).push(r);
-        });
-      });
-
-      // Map id->label from CHECKLIST_ITEMS if available
-      const idToLabel = {};
-      (CHECKLIST_ITEMS||[]).forEach(it=> idToLabel[it.id]=it.label);
-
-      const ruleRows = Object.entries(ruleStats).map(([id,st])=>{
-        const ap = avg(st.pass), af = avg(st.fail);
-        return { id, label: idToLabel[id] || id, nPass: st.pass.length, nFail: st.fail.length, delta: ap-af, ap, af };
-      }).filter(r=> (r.nPass+r.nFail)>=8 && r.nPass>=3 && r.nFail>=3) // enough samples
-        .sort((a,b)=> b.delta-a.delta);
-
-      const wrapR = $("anRules");
-      if(wrapR){
-        wrapR.innerHTML = ruleRows.length ? "" : `<div class="text-sm muted2">Not enough checklist data yet. Use the checklist on more trades.</div>`;
-        ruleRows.slice(0,8).forEach(r=>{
-          const row = document.createElement("div");
-          row.className = "rounded-2xl bg-white/5 ring-soft px-3 py-2";
-          const sign = r.delta>=0 ? "+" : "";
-          row.innerHTML = `<div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="text-sm font-semibold">${escapeHtml(r.label)}</div>
-              <div class="text-xs muted2">pass ${r.nPass} • fail ${r.nFail}</div>
-            </div>
-            <div class="text-sm font-semibold">${sign}${(Math.round(r.delta*100)/100).toFixed(2)}R</div>
-          </div>`;
-          wrapR.appendChild(row);
-        });
-      }
-
-      // Coach summary (simple, opinionated)
-      const topMist = top[0]?.[0] || null;
-      const bestRule = ruleRows[0] || null;
-      const worstRule = ruleRows.length ? ruleRows[ruleRows.length-1] : null;
-
-      const coach = [];
-      if(best) coach.push(`Keep: ${best.k} (avg ${(best.ar).toFixed(2)}R).`);
-      if(topMist) coach.push(`Stop: ${topMist} (most common mistake).`);
-      if(bestRule) coach.push(`Start: Make "${bestRule.label}" non-negotiable (ΔR ${bestRule.delta.toFixed(2)}).`);
-      if(!coach.length) coach.push("Review more trades to unlock coaching insights.");
-
-      const coachWrap = $("anCoach");
-      if(coachWrap){
-        coachWrap.innerHTML = coach.map(x=> `<div class="rounded-2xl bg-white/5 ring-soft p-3">${escapeHtml(x)}</div>`).join("");
-      }
-
-      // store latest coach text for inserting into Journal
-      window.__coachText = coach.join("\n");
-      window.__coachTopMistakes = top.map(x=> x[0]).slice(0,3);
-      window.__coachBestSetup = best?.k || "";
-      window.__coachWorstSetup = worst?.k || "";
-    }
-
-    $("btnRefreshAnalytics")?.addEventListener("click", ()=>{ renderAnalytics(); toast("Updated"); });
-    $("anDays")?.addEventListener("change", ()=> renderAnalytics());
-
-    $("btnSendToJournal")?.addEventListener("click", ()=>{
-      const d = todayISO();
-      const cur = ($("drText")?.value||"").trim();
-      const inject = `\n\n=== Coach Summary (${d}) ===\n${(window.__coachText||"")}\nBest setup: ${window.__coachBestSetup||"n/a"}\nWorst setup: ${window.__coachWorstSetup||"n/a"}\nTop mistakes: ${(window.__coachTopMistakes||[]).join(", ")||"n/a"}\n`;
-      $("drText").value = (cur ? cur + inject : inject.trim());
-      toast("Inserted into Daily Review");
-      openDailyReview();
-    });
-
-
-// -----------------------------
     // Settings / export / import
     // -----------------------------
-    
-    function renderReflectionPromptEditor(){
-      const sel = $("refTag");
-      if(!sel) return;
-
-      sel.innerHTML = MISTAKE_TAGS.map(t=> `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join("");
-
-      const loadTag = ()=>{
-        const tag = sel.value || MISTAKE_TAGS[0];
-        const p = getPromptsForTag(tag);
-        $("refP1").value = p[0] || "";
-        $("refP2").value = p[1] || "";
-        $("refP3").value = p[2] || "";
-        $("refPreview").textContent = "3 prompts will show in Daily Review when this tag is selected.";
-        $("refSaved").textContent = "";
-      };
-
-      sel.onchange = loadTag;
-      loadTag();
-
-      $("btnSavePrompts")?.addEventListener("click", ()=>{
-        const tag = sel.value;
-        const p1 = ($("refP1").value||"").trim();
-        const p2 = ($("refP2").value||"").trim();
-        const p3 = ($("refP3").value||"").trim();
-        S.reflectionPrompts = S.reflectionPrompts || {};
-        S.reflectionPrompts[tag] = [p1, p2, p3];
-        saveSmart(S);
-        $("refSaved").textContent = "Saved.";
-        toast("Prompts saved");
-      });
-
-      $("btnResetPrompts")?.addEventListener("click", ()=>{
-        S.reflectionPrompts = {};
-        saveSmart(S);
-        loadTag();
-        $("refSaved").textContent = "Reset.";
-        toast("Prompts reset");
-      });
-    }
-
-
     function renderSettings(){
       $("setName").value = S.profile.name || "";
       $("setNotifDaily").checked = !!S.notifs.daily;
@@ -2278,6 +1652,7 @@ function openDailyReview(){
       S.goals.push({ id: uid(), text: t, done: false, ts: Date.now() });
       $("goalNew").value = "";
       saveSmart(S);
+      renderGoals();
       toast("Goal added");
     });
     $("goalNew")?.addEventListener("keydown", (e)=>{
@@ -2362,6 +1737,7 @@ $("btnSaveReview").addEventListener("click", saveReview);
       
       renderTodayTrades();
       renderReviewTab();
+      renderGoals();
       renderSettings();
       updateCoreStatus();
       
