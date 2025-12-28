@@ -1,0 +1,3289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>TradeCheck - Journal and Review</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#09090b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    html, body { height: 100%; }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .safe-bottom { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
+    .sheet { backdrop-filter: blur(10px); -webkit-overflow-scrolling: touch; }
+    .shadow-soft { box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+    .ring-soft { box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset; }
+    .tap { -webkit-tap-highlight-color: transparent; }
+    .navbtn.active { background: rgba(255,255,255,.08); }
+    .chip { border: 1px solid rgba(255,255,255,.10); }
+    .muted { color: rgba(255,255,255,.72); }
+    .muted2 { color: rgba(255,255,255,.55); }
+    .hair { border-color: rgba(255,255,255,.10); }
+    html, body { overflow-x: hidden; max-width: 100%; }
+    .navbtn { min-height: 52px; }
+    input, textarea, select { outline: none; }
+  
+    :root{
+      --sat: env(safe-area-inset-top);
+      --sar: env(safe-area-inset-right);
+      --sab: env(safe-area-inset-bottom);
+      --sal: env(safe-area-inset-left);
+    }
+
+    /* iOS viewport + scroll fixes */
+    html, body { height: 100%; }
+    body{
+      min-height: 100dvh;
+      padding-left: var(--sal);
+      padding-right: var(--sar);
+      overscroll-behavior-y: none;
+      -webkit-text-size-adjust: 100%;
+    }
+    input, textarea, select { font-size: 16px; } /* prevent iOS zoom on focus */
+
+    /* Sheets: scroll internally so nothing goes off-screen */
+    .sheet{
+      max-height: calc(100dvh - 88px - var(--sab));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding-bottom: calc(1rem + var(--sab));
+    }
+
+    /* Ensure main content never hides under bottom nav */
+    .pb-nav{ padding-bottom: calc(7.5rem + var(--sab)); }
+
+  </style>
+
+  <script>
+    // Tailwind config (single accent)
+    tailwind.config = { theme: { extend: { colors: { accent: { DEFAULT: "#60a5fa" } } } } };
+  </script>
+</head>
+
+<body class="bg-zinc-950 text-zinc-100">
+
+  <!-- AUTH GATE -->
+  <div id="authGate" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm">
+    <div class="min-h-screen flex items-center justify-center p-5">
+      <div class="w-full max-w-md rounded-3xl bg-zinc-900/90 ring-soft shadow-soft p-6">
+        <div class="flex items-start justify-between">
+          <div>
+            <div class="text-sm muted2">TradeCheck</div>
+            <div class="text-2xl font-semibold mt-1">Sign in</div>
+          </div>
+          <div class="h-10 w-10 rounded-2xl bg-white/5 ring-soft grid place-items-center">✓</div>
+        </div>
+
+        <div class="mt-5 space-y-3">
+          <div>
+            <div class="text-xs muted2">Email</div>
+            <input id="authEmail" type="email" autocomplete="email" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="you@email.com" />
+          </div>
+          <div>
+            <div class="text-xs muted2">Password</div>
+            <input id="authPass" type="password" autocomplete="current-password" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="••••••••" />
+          </div>
+          <div id="authMsg" class="text-sm muted2"></div>
+        </div>
+
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button id="btnLogin" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Login</button>
+          <button id="btnSignup" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Sign up</button>
+        </div>
+
+        <div class="mt-4 text-xs muted2">
+          Tip: if email confirmation is enabled in Supabase Auth, check your inbox after signup.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="appShell" class="min-h-screen flex flex-col hidden">
+    <!-- Top bar -->
+    <header class="px-5 pt-5 pb-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-10 w-10 rounded-2xl bg-white/5 ring-soft grid place-items-center">✓</div>
+          <div>
+            <div class="text-sm muted2">TradeCheck</div>
+            <div id="topTitle" class="text-base font-semibold">Journal</div>
+          </div>
+        </div>
+        <button id="btnNewTradeTop" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">New trade</button>
+      </div>
+    </header>
+
+    <main class="flex-1 px-5 pb-nav space-y-6">
+      <!-- JOURNAL -->
+      <section id="viewJournal" class="space-y-6">
+        <div id="pendingBanner" class="hidden rounded-3xl bg-red-500/10 ring-soft p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Review pending</div>
+              <div class="text-sm muted2 mt-1">You have at least one trade not reviewed. Review it before logging another trade.</div>
+            </div>
+            <button id="btnGoReviewFromBanner" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">Review now</button>
+          </div>
+        </div>
+
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2" id="greeting">Good morning</div>
+          <div class="text-2xl font-semibold mt-1">Trade Journal</div>
+          <div class="text-sm muted2 mt-2">Log clean entries, attach screenshots, move on. Reviews happen in the Review tab.</div>
+
+          <div class="mt-5 flex flex-col sm:flex-row gap-3">
+            <button id="btnStartChecklist" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">
+              Start checklist
+            </button>
+            <button id="btnNewTrade" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">
+              Log trade now
+            </button>
+          </div>
+
+          <div id="coreStatus" class="mt-4 text-sm muted2"></div>
+
+          <div class="mt-5 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Today’s Tape</div>
+                <div class="text-sm muted2" id="todayMeta">No trades logged yet</div>
+              </div>
+            </div>
+            <div class="mt-3 space-y-2" id="todayTrades"></div>
+          </div>
+        </div>
+
+        </section>
+
+      <!-- REVIEW TAB -->
+      <section id="viewReview" class="space-y-6 hidden">
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2">Turn trades into rules.</div>
+          <div class="text-2xl font-semibold mt-1">Review</div>
+          <div class="mt-4 grid sm:grid-cols-3 gap-3">
+            <button id="btnOpenDayFromReview" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">Open Day page</button>
+            <button id="btnOpenTodayDayFromReview" class="tap px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">Today’s Tape</button>
+            </div>
+
+          <div class="mt-4 rounded-2xl bg-white/3 ring-soft p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold">Past days</div>
+                <div class="text-sm muted2">Tap a day to see trades, screenshots, mistakes, lessons, and your daily review.</div>
+              </div>
+              <input id="reviewDayPicker" type="date" class="bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" />
+            </div>
+            <div class="mt-4 space-y-3" id="reviewDayHistory"></div>
+          </div>
+
+
+          <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold" id="reviewHeadline">No trades yet</div>
+                <div class="text-sm muted2" id="reviewSub">Log a trade first.</div>
+              </div>
+              <button id="btnOpenReview" class="tap px-3 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold disabled:opacity-40" disabled>Review</button>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded-2xl bg-white/3 ring-soft p-5">
+            <div class="text-sm font-semibold">Recent trades</div>
+            <div class="text-sm muted2">Pending reviews are shown first.</div>
+            <div class="mt-4 space-y-3" id="reviewTradeList"></div>
+          </div>
+        </div>
+
+
+          <div class="mt-4 rounded-2xl bg-white/3 ring-soft p-5">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold">P&amp;L calendar</div>
+                <div class="text-sm muted2">Daily P&amp;L and trade count. Tap a day to open its Day page.</div>
+              </div>
+              <div class="flex gap-2">
+                <button id="calPrev" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Prev</button>
+                <div class="px-3 py-2 rounded-xl bg-white/5 ring-soft text-sm font-semibold" id="calLabel">Month</div>
+                <button id="calNext" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Next</button>
+              </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-7 gap-2 text-xs muted2">
+              <div class="text-center">Sun</div><div class="text-center">Mon</div><div class="text-center">Tue</div><div class="text-center">Wed</div><div class="text-center">Thu</div><div class="text-center">Fri</div><div class="text-center">Sat</div>
+            </div>
+
+            <div class="mt-2 grid grid-cols-7 gap-2" id="calGrid"></div>
+
+            <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+              <div class="text-sm font-semibold">Selected day</div>
+              <div class="text-sm muted2" id="calSelectedMeta">Tap a day.</div>
+              <div class="mt-3 flex flex-wrap gap-2" id="calSelectedTags"></div>
+            </div>
+          </div>
+
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="viewSettings" class="space-y-6 hidden">
+
+        <div class="rounded-3xl bg-white/3 ring-soft p-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Strategy Builder</div>
+              <div class="text-sm muted2">Create strategies and tier your rules: Filter, Confluence, Core.</div>
+            </div>
+            <button id="btnNewStrategy" class="tap px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Add</button>
+          </div>
+          <div class="mt-4 space-y-3" id="strategyList"></div>
+        </div>
+    
+        <div class="rounded-3xl bg-white/5 ring-soft p-6">
+          <div class="text-sm muted2">Boring is good.</div>
+          <div class="text-2xl font-semibold mt-1">Settings</div>
+
+          <div class="mt-5 grid lg:grid-cols-2 gap-4">
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Profile</div>
+              <div class="mt-3">
+                <div class="text-xs muted2">Display name</div>
+                <input id="setName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., Bipul" />
+              </div>
+              <div class="mt-3 flex gap-3 flex-wrap">
+                <button id="btnLogout" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Logout</button>
+                <button id="btnSaveProfile" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Save</button>
+                <div id="profileSaved" class="text-sm muted2 self-center"></div>
+              </div>
+            </div>
+
+            <div class="rounded-3xl bg-white/5 ring-soft p-5">
+              <div class="text-sm font-semibold">Notifications</div>
+              <div class="text-sm muted2 mt-1">In app reminders only.</div>
+              <label class="mt-3 flex items-center gap-2 text-sm">
+                <input id="setNotifDaily" type="checkbox" class="accent-accent" />
+                <span class="muted">Remind me to complete Daily Review</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-white/3 ring-soft p-5">
+            <div class="text-sm font-semibold">Data</div>
+            <div class="text-sm muted2">Synced to Supabase when logged in. Local cache is kept for offline.</div>
+            <div class="mt-3 flex flex-wrap gap-3">
+              <button id="btnExport" class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Export JSON</button>
+              <label class="tap px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium cursor-pointer">
+                Import JSON
+                <input id="importFile" type="file" accept="application/json" class="hidden" />
+              </label>
+              <button id="btnResetAll" class="tap px-4 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold">Reset all data</button>
+            </div>
+            <div id="dataMsg" class="text-sm muted2 mt-2"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="safe-bottom fixed bottom-0 left-0 right-0 bg-zinc-950/80 sheet border-t hair">
+      <div class="max-w-4xl mx-auto px-4 py-2 grid grid-cols-3 gap-2">
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1 active" data-tab="journal">
+          <span class="text-base">✓</span><span>Trade Journal</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="review">
+          <span class="text-base">📝</span><span>Trade Review</span>
+        </button>
+        <button class="navbtn tap rounded-2xl px-2 py-2 text-xs muted2 flex flex-col items-center gap-1" data-tab="settings">
+          <span class="text-base">⚙️</span><span>Settings</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- Sheets backdrop -->
+  <div id="sheetBackdrop" class="hidden fixed inset-0 bg-black/60 z-40"></div>
+
+  <!-- Checklist Sheet -->
+  <div id="sheetChecklist" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Checklist</div>
+            <div class="text-lg font-semibold">Pass or do not trade.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="ckStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence (0 to 100)</div>
+            <input id="ckConfidence" type="number" min="0" max="100" value="70" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Result</div>
+              <div class="text-sm muted2" id="ckRuleMeta">Core must be checked.</div>
+            </div>
+            <div class="text-right">
+              <div class="text-2xl font-semibold" id="ckResult">FAIL</div>
+              <div class="text-sm muted2" id="ckHint">Fix the checklist or pass.</div>
+            </div>
+          </div>
+          <div class="mt-3 text-sm muted2" id="ckExplain"></div>
+        </div>
+
+        <div class="mt-4">
+          <div class="text-sm font-semibold">Rules</div>
+          <div class="text-sm muted2">Core is required. Confluence helps. Filter keeps you out of trouble.</div>
+          <div class="mt-3 space-y-2 max-h-56 overflow-auto pr-1" id="ckRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnProceedTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">
+            Proceed to log trade
+          </button>
+          <div class="text-sm muted2 self-center" id="ckProceedHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Trade Sheet -->
+  <div id="sheetTrade" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Trade journal</div>
+            <div class="text-lg font-semibold">Log fast. Include proof.</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Strategy</div>
+            <select id="tStrategy" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25"></select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Symbol</div>
+            <input id="tSymbol" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., MNQ" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Setup</div>
+            <input id="tSetup" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., ORB" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Risk ($)</div>
+            <input id="tRisk" type="number" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., 100" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Confidence</div>
+            <input id="tConfidence" type="number" min="0" max="100" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" />
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">One sentence plan (required)</div>
+            <textarea id="tNotes" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="Example: Break and retest ORH, no VWAP ahead, stop at ORL."></textarea>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Screenshots (required)</div>
+          <div class="text-sm muted2">Upload at least one image. Entry or exit chart is enough.</div>
+          <div class="mt-3">
+            <input id="tImages" type="file" accept="image/*" multiple class="w-full text-sm" />
+            <div class="text-xs muted2 mt-2">Tip: upload entry and exit if you can.</div>
+          </div>
+          <div id="tImgPreview" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-semibold">Checklist snapshot</div>
+            <div class="text-sm muted2" id="tScoreMeta">Run checklist first for a clean snapshot.</div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-semibold" id="tScore">-</div>
+            <div class="text-sm muted2" id="tGrade">-</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveTrade" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save trade</button>
+          <div id="tradeHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Sheet -->
+  <div id="sheetReview" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Post trade review</div>
+            <div class="text-lg font-semibold" id="rvTitle">Trade</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Outcome</div>
+            <select id="rvOutcome" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25">
+              <option value="win">Win</option>
+              <option value="loss">Loss</option>
+              <option value="breakeven">Breakeven</option>
+            </select>
+          </div>
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Realized R</div>
+            <input id="rvR" type="number" step="0.01" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., 1.00" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Mistakes (tap to toggle)</div>
+          <div class="text-sm muted2">Be honest. No one is grading you but the market.</div>
+          <div class="mt-3 flex flex-wrap gap-2" id="rvMistakes"></div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">One sentence lesson (required)</div>
+          <div class="text-sm muted2">What will you do differently next time?</div>
+          <textarea id="rvLesson" rows="2" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="Example: If VWAP is 5 points ahead, I skip the breakout."></textarea>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">Screenshots</div>
+          <div class="text-sm muted2">Tap to open in a new tab.</div>
+          <div id="rvImgs" class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveReview" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save review</button>
+          <div id="rvHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Strategy Sheet -->
+  <div id="sheetStrategy" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Strategy</div>
+            <div class="text-lg font-semibold">Rules and tiers</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4 sm:col-span-2">
+            <div class="text-xs muted2">Strategy name</div>
+            <input id="stName" class="mt-2 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., ORB" />
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-semibold">Rules</div>
+              <div class="text-sm muted2">Core must pass. Confluence strengthens. Filter keeps you out.</div>
+            </div>
+            <button id="btnAddRule" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Add rule</button>
+          </div>
+          <div class="mt-3 space-y-2" id="stRules"></div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveStrategy" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save strategy</button>
+          <div id="stHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Review Sheet -->
+  <div id="sheetDaily" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Daily Review</div>
+        <div class="mt-4 grid sm:grid-cols-2 gap-3">
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Date</div>
+            <div class="mt-2 flex gap-2">
+              <input id="dayDate" type="date" class="w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" />
+              <button id="btnDayPrev" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Prev</button>
+              <button id="btnDayNext" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">Next</button>
+            </div>
+          </div>
+
+          <div class="rounded-2xl bg-white/5 ring-soft p-4">
+            <div class="text-xs muted2">Prompt from mistakes</div>
+            <div class="mt-2 flex gap-2">
+              <button id="btnDayGenPrompt" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold w-full">Generate</button>
+              <button id="btnDayInsertPrompt" class="tap px-3 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold w-full">Insert</button>
+            </div>
+            <div id="dayPrompt" class="mt-3 text-sm muted2 whitespace-pre-wrap"></div>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-5">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Day summary</div>
+              <div class="text-sm muted2">Everything for this day, in one place.</div>
+            </div>
+            <button id="btnDayOpenPending" class="hidden tap px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold">Review pending</button>
+          </div>
+
+          <div id="dayStats" class="mt-3 text-sm muted2"></div>
+
+          <div class="mt-4 grid md:grid-cols-2 gap-3">
+            <div class="rounded-2xl bg-white/3 ring-soft p-4">
+              <div class="text-sm font-semibold">Top mistakes</div>
+              <div class="text-sm muted2">From reviewed trades.</div>
+              <div id="dayMistakes" class="mt-3 flex flex-wrap gap-2"></div>
+            </div>
+            <div class="rounded-2xl bg-white/3 ring-soft p-4">
+              <div class="text-sm font-semibold">Highlights</div>
+              <div class="text-sm muted2">What went right. What to fix.</div>
+              <div id="dayHighlights" class="mt-3 text-sm muted2 whitespace-pre-wrap"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Trades</div>
+              <div class="text-sm muted2">Screenshots, results, mistakes, lessons.</div>
+            </div>
+            <button id="btnDayNewTrade" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-medium">Log trade</button>
+          </div>
+          <div id="dayTrades" class="mt-4 space-y-3"></div>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-5">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Daily review</div>
+              <div class="text-sm muted2">Your reflection for this day.</div>
+            </div>
+            <button id="btnDaySaveReview" class="tap px-3 py-2 rounded-xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Save</button>
+          </div>
+          <textarea id="dayReviewText" rows="4" class="mt-3 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="Write your daily review. One paragraph is enough."></textarea>
+          <div id="dayReviewHint" class="text-sm muted2 mt-2"></div>
+        </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Onboarding Sheet -->
+  <div id="sheetOnboard" class="hidden fixed inset-0 z-50">
+    <div class="absolute inset-0" data-close-sheet="1"></div>
+    <div class="absolute left-0 right-0 bottom-0 safe-bottom">
+      <div class="mx-auto max-w-2xl bg-zinc-900/90 sheet ring-soft shadow-soft rounded-t-3xl p-5">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm muted2">Welcome</div>
+            <div class="text-lg font-semibold">Set up your loop</div>
+          </div>
+          <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-close-sheet="1">Close</button>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">1) Your name</div>
+          <div class="text-sm muted2">Used for greetings only.</div>
+          <input id="obName" class="mt-3 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="e.g., Bipul" />
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">2) Default strategy</div>
+          <div class="text-sm muted2">You can change this anytime.</div>
+          <select id="obStrategy" class="mt-3 w-full bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25"></select>
+        </div>
+
+        <div class="mt-4 rounded-2xl bg-white/5 ring-soft p-4">
+          <div class="text-sm font-semibold">3) Rules of the app</div>
+          <div class="mt-2 space-y-2 text-sm muted2">
+            <div>• Log the trade with screenshots.</div>
+            <div>• Review the trade with a one sentence lesson.</div>
+            <div>• Daily Review shows everything for each day in one place.</div>
+            <div>• If a trade is unreviewed, logging a new one is blocked.</div>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-col sm:flex-row gap-3">
+          <button id="btnOnboardSave" class="tap px-4 py-3 rounded-2xl bg-accent/20 hover:bg-accent/25 ring-soft text-sm font-semibold">Finish</button>
+          <div id="obHint" class="text-sm muted2 self-center"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed top-5 left-1/2 -translate-x-1/2 z-50">
+    <div class="rounded-2xl bg-zinc-900/90 ring-soft shadow-soft px-4 py-3 text-sm">
+      <span id="toastText">Saved</span>
+    </div>
+  </div>
+
+  <script>
+// -----------------------------
+    // Supabase
+    // -----------------------------
+    const SUPABASE_URL = "https://hfnpqamhtxhhsrwmngtv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_2im62kUUfZ_WLgaHuNmP7w_vFsuE0QV";
+    const STORAGE_BUCKET = "trade-screens";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUserId = null;
+    let currentEmail = "";
+
+    const todayISO = () => (new Date()).toISOString().slice(0,10);
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+    const defaults = {
+      flags: { onboarded: false },
+      settings: { displayName: "", defaultStrategyId: "" },
+      flags: { onboarded: false },
+      settings: { displayName: "", defaultStrategyId: "" },
+      profile: { name: "" },
+      notifs: { daily: true },
+      strategies: [],
+      trades: [],
+      dailyReviews: {}
+    };
+
+    const getLSKey = () => currentUserId ? `tradecheck.v4_${currentUserId}` : `tradecheck.v4_guest`;
+
+    function loadLocal(){
+      try{
+        const raw = localStorage.getItem(getLSKey());
+        if(!raw) return structuredClone(defaults);
+        const obj = JSON.parse(raw);
+        return { ...structuredClone(defaults), ...obj };
+      }catch(e){
+        return structuredClone(defaults);
+      }
+    }
+    function saveLocal(state){ localStorage.setItem(getLSKey(), JSON.stringify(state)); }
+
+    async function loadRemote(){
+      if(!currentUserId) return null;
+      const { data, error } = await sb.from("app_state").select("state").eq("user_id", currentUserId).maybeSingle();
+      if(error) throw error;
+      return data?.state || null;
+    }
+    async function saveRemote(state){
+      if(!currentUserId) return;
+      const payload = { user_id: currentUserId, state, updated_at: new Date().toISOString() };
+      const { error } = await sb.from("app_state").upsert(payload);
+      if(error) throw error;
+    }
+
+    let _remoteSaveTimer = null;
+    function saveSmart(state){
+      saveLocal(state);
+      if(!currentUserId) return;
+      clearTimeout(_remoteSaveTimer);
+      _remoteSaveTimer = setTimeout(async ()=>{
+        try{ await saveRemote(state); }catch(e){ console.warn("Remote save failed:", e); }
+      }, 500);
+    }
+
+    let S = structuredClone(defaults);
+
+    // -----------------------------
+    // UI helpers
+    // -----------------------------
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg){
+      $("toastText").textContent = msg;
+      $("toast").classList.remove("hidden");
+      setTimeout(()=> $("toast").classList.add("hidden"), 1600);
+    }
+
+    function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
+
+    function escapeHtml(s){
+      return String(s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+    function escapeAttr(s){ return escapeHtml(s).replace(/"/g, "&quot;"); }
+
+    function setAuthMessage(t){ const el = $("authMsg"); if(el) el.textContent = t || ""; }
+
+    // -----------------------------
+    // Auth
+    // -----------------------------
+    async function sbSignUp(email, password){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogin(email, password){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogout(){
+      const { error } = await sb.auth.signOut();
+      if(error) throw error;
+    }
+
+    async function loadUserState(){
+      let chosen = null;
+      try{
+        const remote = await loadRemote();
+        const local = loadLocal();
+        if(remote && typeof remote === "object"){
+          const rTrades = Array.isArray(remote.trades) ? remote.trades.length : 0;
+          const lTrades = Array.isArray(local.trades) ? local.trades.length : 0;
+          chosen = (rTrades >= lTrades) ? remote : local;
+        } else chosen = local;
+      }catch(e){
+        chosen = loadLocal();
+      }
+      S = { ...structuredClone(defaults), ...(chosen || {}) };
+      ensureStarterStrategy();
+      if(!Array.isArray(S.trades)) S.trades = [];
+      if(!Array.isArray(S.strategies)) S.strategies = [];
+      if(!S.dailyReviews || typeof S.dailyReviews !== "object") S.dailyReviews = {};
+      saveSmart(S);
+    }
+
+    async function bootSupabase(){
+      try{
+        const { data: { session } } = await sb.auth.getSession();
+        if(session?.user){
+          currentUserId = session.user.id;
+          currentEmail = session.user.email || "";
+          await loadUserState();
+          $("authGate").classList.add("hidden");
+          $("appShell").classList.remove("hidden");
+          bootstrap();
+        } else {
+          $("appShell").classList.add("hidden");
+          $("authGate").classList.remove("hidden");
+        }
+      }catch(e){
+        console.warn(e);
+        $("appShell").classList.add("hidden");
+        $("authGate").classList.remove("hidden");
+      }
+    }
+
+    $("btnLogin")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Logging in...");
+      try{
+        await sbLogin(email, pass);
+        setAuthMessage("");
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Login failed.");
+      }
+    });
+
+    $("btnSignup")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Creating account...");
+      try{
+        await sbSignUp(email, pass);
+        setAuthMessage("Account created. Check inbox if confirmation is on.");
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Sign up failed.");
+      }
+    });
+
+    $("btnLogout")?.addEventListener("click", async ()=>{
+      try{ await sbLogout(); }catch(e){ console.warn(e); }
+      currentUserId = null;
+      currentEmail = "";
+      S = structuredClone(defaults);
+      $("appShell").classList.add("hidden");
+      $("authGate").classList.remove("hidden");
+      toast("Logged out");
+    });
+
+    // -----------------------------
+    // Sheets
+    // -----------------------------
+    function openSheet(id){
+      $("sheetBackdrop").classList.remove("hidden");
+      $(id).classList.remove("hidden");
+      document.body.classList.add("overflow-hidden");
+    }
+    function closeSheets(){
+      $("sheetBackdrop").classList.add("hidden");
+      ["sheetChecklist","sheetTrade","sheetReview","sheetStrategy","sheetDaily"].forEach(id=> $(id).classList.add("hidden"));
+      document.body.classList.remove("overflow-hidden");
+    }
+    document.addEventListener("click",(e)=>{
+      const t = e.target;
+      if(t && t.getAttribute && t.getAttribute("data-close-sheet")==="1") closeSheets();
+    });
+    $("sheetBackdrop")?.addEventListener("click", closeSheets);
+
+    // -----------------------------
+    // Tabs
+    // -----------------------------
+    const views = { journal: $("viewJournal"), review: $("viewReview"), settings: $("viewSettings") };
+    function setTab(tab){
+      Object.keys(views).forEach(k=> views[k].classList.toggle("hidden", k!==tab));
+      document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+      $("topTitle").textContent = tab === "journal" ? "Trade Journal" : (tab === "review" ? "Trade Review" : "Settings");
+      window.scrollTo({top:0, behavior:"smooth"});
+      if(tab==="review") renderReviewTab();
+      if(tab==="settings") renderSettings();
+    }
+    document.querySelectorAll(".navbtn").forEach(btn=> btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
+
+    // -----------------------------
+    // Strategy builder (tiered rules)
+    // -----------------------------
+    const TIER_LABEL = { filter: "Filter", confluence: "Confluence", core: "Core" };
+
+    function ensureStarterStrategy(){
+      if(S.strategies && S.strategies.length) return;
+      S.strategies = S.strategies || [];
+      S.strategies.push({
+        id: uid(),
+        name: "ORB (starter)",
+        rules: [
+          { id: uid(), text: "Opening range is clean (no chop)", tier: "filter" },
+          { id: uid(), text: "HTF bias aligned", tier: "confluence" },
+          { id: uid(), text: "No VWAP directly ahead", tier: "confluence" },
+          { id: uid(), text: "Risk size correct", tier: "core" },
+          { id: uid(), text: "Entry is at planned level", tier: "core" }
+        ]
+      });
+      saveSmart(S);
+    }
+
+    function renderStrategies(){
+      const wrap = $("strategyList");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+      if(!S.strategies.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No strategies yet. Add one.</div>`;
+        return;
+      }
+      S.strategies.forEach(st=>{
+        const counts = { filter: 0, confluence: 0, core: 0 };
+        (st.rules||[]).forEach(r=> { if(counts[r.tier]!=null) counts[r.tier]++; });
+        const div = document.createElement("div");
+        div.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-start justify-between gap-3";
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(st.name)}</div>
+            <div class="text-sm muted2">${counts.core} core, ${counts.confluence} confluence, ${counts.filter} filter</div>
+          </div>
+          <div class="flex gap-2">
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-edit="${st.id}">Edit</button>
+            <button class="tap px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold" data-del="${st.id}">Delete</button>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+
+      wrap.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-del");
+        if(S.strategies.length<=1){ toast("Keep at least 1 strategy."); return; }
+        S.strategies = S.strategies.filter(s=> s.id!==id);
+        saveSmart(S);
+        renderStrategies();
+        syncStrategySelects();
+        toast("Strategy deleted");
+      }));
+      wrap.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=> openStrategyEditor(b.getAttribute("data-edit"))));
+    }
+
+    function addRuleRow(text="", tier="confluence", rid=null){
+      const row = document.createElement("div");
+      row.className = "grid grid-cols-12 gap-2";
+      const id = rid || uid();
+      row.dataset.rid = id;
+      const t = (tier==="filter"||tier==="confluence"||tier==="core") ? tier : "confluence";
+      row.innerHTML = `
+        <input class="col-span-8 bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="Rule (example: No VWAP ahead)" value="${escapeAttr(text)}">
+        <select class="col-span-3 bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25">
+          <option value="filter" ${t==="filter"?"selected":""}>Filter</option>
+          <option value="confluence" ${t==="confluence"?"selected":""}>Confluence</option>
+          <option value="core" ${t==="core"?"selected":""}>Core</option>
+        </select>
+        <button class="col-span-1 tap rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">×</button>
+      `;
+      row.querySelector("button").addEventListener("click", ()=> row.remove());
+      $("stRules").appendChild(row);
+    }
+
+    function openStrategyEditor(id=null){
+      $("stHint").textContent = "";
+      $("stName").value = "";
+      $("stRules").innerHTML = "";
+      $("sheetStrategy").dataset.editId = id || "";
+      const st = id ? S.strategies.find(s=> s.id===id) : null;
+      if(st){
+        $("stName").value = st.name;
+        (st.rules||[]).forEach(r=> addRuleRow(r.text, r.tier, r.id));
+      } else {
+        addRuleRow("", "core");
+        addRuleRow("", "confluence");
+        addRuleRow("", "filter");
+      }
+      openSheet("sheetStrategy");
+    }
+
+    $("btnNewStrategy")?.addEventListener("click", ()=> openStrategyEditor(null));
+    $("btnAddRule")?.addEventListener("click", ()=> addRuleRow("", "confluence"));
+
+    $("btnSaveStrategy")?.addEventListener("click", ()=>{
+      const name = $("stName").value.trim();
+      if(!name){ $("stHint").textContent = "Name required."; return; }
+      const rows = Array.from($("stRules").children);
+      const rules = rows.map(r=>{
+        const inputs = r.querySelectorAll("input, select");
+        const text = (inputs[0].value||"").trim();
+        const tier = (inputs[1].value||"confluence");
+        return { id: r.dataset.rid, text, tier: (tier==="filter"||tier==="confluence"||tier==="core") ? tier : "confluence" };
+      }).filter(x=> x.text.length);
+
+      if(!rules.length){ $("stHint").textContent = "Add at least 1 rule."; return; }
+      const coreCount = rules.filter(r=> r.tier==="core").length;
+      if(coreCount===0){ $("stHint").textContent = "Add at least 1 Core rule."; return; }
+
+      const editId = $("sheetStrategy").dataset.editId || "";
+      if(editId){
+        const st = S.strategies.find(s=> s.id===editId);
+        if(st){ st.name = name; st.rules = rules; }
+        S.trades.forEach(t=> { if(t.strategyId===editId) t.strategyName = name; });
+        toast("Strategy updated");
+      } else {
+        S.strategies.push({ id: uid(), name, rules });
+        toast("Strategy saved");
+      }
+      saveSmart(S);
+      closeSheets();
+      renderStrategies();
+      syncStrategySelects();
+      updateCoreStatus();
+    });
+
+    function syncStrategySelects(){
+      const opts = S.strategies.map(s=> `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+      ["ckStrategy","tStrategy"].forEach(id=>{
+        const el = $(id);
+        if(!el) return;
+        el.innerHTML = opts;
+      });
+      if(S.strategies[0]){
+        if(!$("ckStrategy").value) $("ckStrategy").value = S.strategies[0].id;
+        if(!$("tStrategy").value) $("tStrategy").value = S.strategies[0].id;
+      }
+    }
+
+    // -----------------------------
+    // Checklist (tiered gating)
+    // -----------------------------
+    let lastChecklist = null; // { strategyId, confidence, result, details, answers }
+
+    function buildChecklist(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const wrap = $("ckRules");
+      wrap.innerHTML = "";
+      if(!st){
+        wrap.innerHTML = `<div class="text-sm muted2">Create a strategy first.</div>`;
+        updateChecklist();
+        return;
+      }
+
+      const sorted = [...(st.rules||[])].sort((a,b)=>{
+        const order = { core:0, confluence:1, filter:2 };
+        return (order[a.tier] ?? 9) - (order[b.tier] ?? 9);
+      });
+
+      sorted.forEach(r=>{
+        const row = document.createElement("label");
+        row.className = "tap flex items-center justify-between gap-3 rounded-2xl bg-white/5 ring-soft px-4 py-3";
+        row.innerHTML = `
+          <div class="text-sm">
+            ${escapeHtml(r.text)}
+            <span class="text-xs muted2">(${TIER_LABEL[r.tier] || "Confluence"})</span>
+          </div>
+          <input type="checkbox" class="accent-accent" data-rule="${r.id}">
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll("input[type=checkbox]").forEach(cb=> cb.addEventListener("change", updateChecklist));
+      updateChecklist();
+    }
+
+    function updateChecklist(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const conf = clamp(parseInt($("ckConfidence").value||"0",10),0,100);
+
+      if(!st){
+        $("ckResult").textContent = "FAIL";
+        $("ckHint").textContent = "Create a strategy first.";
+        $("ckExplain").textContent = "";
+        lastChecklist = null;
+        return;
+      }
+
+      const boxes = Array.from($("ckRules").querySelectorAll("input[type=checkbox]"));
+      const answers = {};
+      boxes.forEach(b=> answers[b.dataset.rule] = !!b.checked);
+
+      const core = (st.rules||[]).filter(r=> r.tier==="core");
+      const confluence = (st.rules||[]).filter(r=> r.tier==="confluence");
+
+      const coreMissing = core.filter(r=> !answers[r.id]);
+      const confluenceChecked = confluence.filter(r=> answers[r.id]).length;
+
+      let result = "FAIL";
+      let hint = "Fix the checklist or pass.";
+      let explain = "";
+
+      if(coreMissing.length){
+        result = "FAIL";
+        hint = "Core not met. Do not trade.";
+        explain = "Unchecked core: " + coreMissing.map(r=> r.text).slice(0,3).join(" | ") + (coreMissing.length>3 ? " ..." : "");
+      } else if(confluence.length && confluenceChecked < 1){
+        result = "WEAK";
+        hint = "Core met, confluence missing. Consider passing.";
+        explain = "Add at least one confluence for a higher quality trade.";
+      } else {
+        result = "PASS";
+        hint = "Green light. Respect risk.";
+        explain = conf < 60 ? "Confidence is low. Trade only if you can explain why." : "Looks clean. Execute like a machine.";
+      }
+
+      $("ckResult").textContent = result;
+      $("ckHint").textContent = hint;
+      $("ckExplain").textContent = explain;
+
+      lastChecklist = { strategyId: sid, confidence: conf, result, details: { coreMissing: coreMissing.map(r=>r.id), confluenceChecked }, answers };
+      $("ckProceedHint").textContent = (result==="PASS") ? "Proceed to journal." : (result==="WEAK") ? "Proceed only if disciplined." : "Blocked by checklist.";
+    }
+
+    $("ckStrategy")?.addEventListener("change", buildChecklist);
+    $("ckConfidence")?.addEventListener("input", updateChecklist);
+
+    // -----------------------------
+    // Trade gating: force review
+    // -----------------------------
+    function hasPendingReview(){
+      return (S.trades||[]).some(t=> !t.reviewed);
+    }
+    function pendingTrade(){
+      return (S.trades||[]).find(t=> !t.reviewed) || null;
+    }
+    function updatePendingBanner(){
+      const pending = hasPendingReview();
+      $("pendingBanner").classList.toggle("hidden", !pending);
+      if(pending){
+        $("coreStatus").textContent = "Pending review detected. Review before logging another trade.";
+      }
+    }
+
+    function canLogTrade(){
+      if(hasPendingReview()) return { ok:false, reason:"Review pending trade before logging another." };
+      return { ok:true, reason:"" };
+    }
+
+    // -----------------------------
+    // Image upload
+    // -----------------------------
+    function safeFileName(name){
+      return String(name||"image").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0,120);
+    }
+    function renderImagePreview(files){
+      const wrap = $("tImgPreview");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+      const arr = Array.from(files||[]);
+      arr.slice(0,12).forEach(f=>{
+        const url = URL.createObjectURL(f);
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "w-full aspect-square object-cover rounded-xl ring-soft";
+        img.onload = ()=> URL.revokeObjectURL(url);
+        wrap.appendChild(img);
+      });
+      if(arr.length > 12){
+        const more = document.createElement("div");
+        more.className = "rounded-xl ring-soft bg-white/5 grid place-items-center text-xs muted2";
+        more.textContent = "+" + (arr.length-12);
+        wrap.appendChild(more);
+      }
+    }
+
+    async function uploadTradeImages(tradeId, fileList){
+      const files = Array.from(fileList||[]);
+      const out = [];
+      for(const f of files){
+        const path = `${currentUserId}/${tradeId}/${Date.now()}_${safeFileName(f.name)}`;
+        const { error: upErr } = await sb.storage.from(STORAGE_BUCKET).upload(path, f, { upsert: false, contentType: f.type });
+        if(upErr) throw upErr;
+        const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        out.push({ path, url: data?.publicUrl || "", name: f.name, type: f.type, size: f.size });
+      }
+      return out;
+    }
+
+    // -----------------------------
+    // Trade logging
+    // -----------------------------
+    function openTradeSheet(prefillFromChecklist=true){
+      const gate = canLogTrade();
+      if(!gate.ok){ toast(gate.reason); setTab("review"); return; }
+
+      $("tradeHint").textContent = "";
+      $("tSymbol").value = "MNQ";
+      $("tSetup").value = "ORB";
+      $("tRisk").value = "100";
+      $("tNotes").value = "";
+      $("tConfidence").value = "";
+
+      if(prefillFromChecklist && lastChecklist){
+        $("tStrategy").value = lastChecklist.strategyId;
+        $("tConfidence").value = String(lastChecklist.confidence);
+        $("tScore").textContent = lastChecklist.result;
+        $("tGrade").textContent = "Checklist: " + lastChecklist.result;
+        $("tScoreMeta").textContent = "From your latest checklist";
+      } else {
+        $("tScore").textContent = "-";
+        $("tGrade").textContent = "-";
+        $("tScoreMeta").textContent = "Run checklist first for a snapshot";
+      }
+
+      $("tImgPreview").innerHTML = "";
+      $("tImages").value = "";
+      openSheet("sheetTrade");
+    }
+
+    $("tImages")?.addEventListener("change", (e)=> renderImagePreview(e.target.files));
+
+    async function saveTrade(){
+      const gate = canLogTrade();
+      if(!gate.ok){ $("tradeHint").textContent = gate.reason; return; }
+
+      const strategyId = $("tStrategy").value;
+      const st = S.strategies.find(s=> s.id===strategyId);
+      if(!st){ $("tradeHint").textContent = "Select a strategy."; return; }
+
+      const symbol = $("tSymbol").value.trim();
+      const setup = $("tSetup").value.trim();
+      const risk = $("tRisk").value.trim();
+      const confidence = clamp(parseInt($("tConfidence").value||"0",10),0,100);
+      const notes = $("tNotes").value.trim();
+      const files = $("tImages").files;
+
+      if(!symbol){ $("tradeHint").textContent = "Symbol required."; return; }
+      if(!notes || notes.length < 10){ $("tradeHint").textContent = "One sentence plan required."; return; }
+      if(!files || files.length < 1){ $("tradeHint").textContent = "At least one screenshot required."; return; }
+
+      $("tradeHint").textContent = "Uploading...";
+
+      const tId = uid();
+      let attachments = [];
+      try{
+        attachments = await uploadTradeImages(tId, files);
+      }catch(e){
+        console.warn(e);
+        $("tradeHint").textContent = "Upload failed. Check bucket policy and try again.";
+        return;
+      }
+
+      const pre = (lastChecklist && lastChecklist.strategyId === strategyId) ? structuredClone(lastChecklist) : null;
+
+      const t = {
+        id: tId,
+        ts: Date.now(),
+        date: todayISO(),
+        strategyId,
+        strategyName: st.name,
+        symbol,
+        setup,
+        risk,
+        confidence,
+        notes,
+        attachments,
+        preChecklist: pre,
+        reviewed: false,
+        review: null
+      };
+
+      S.trades.unshift(t);
+      saveSmart(S);
+
+      closeSheets();
+      toast("Trade saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      updatePendingBanner();
+      setTab("review");
+    }
+
+    // -----------------------------
+    // Review
+    // -----------------------------
+    const MISTAKE_TAGS = [
+      "FOMO", "Revenge", "Ignored core rule", "Ignored confluence", "Late entry",
+      "Oversized", "Traded chop", "Moved stop (mental)", "No plan", "Overtraded"
+    ];
+    let reviewTradeId = null;
+
+    function openReviewSheet(tradeId){
+      const t = S.trades.find(x=> x.id===tradeId);
+      if(!t) return;
+
+      reviewTradeId = tradeId;
+      $("rvTitle").textContent = `${t.symbol} - ${t.strategyName}`;
+      $("rvHint").textContent = "";
+
+      $("rvOutcome").value = t.review?.outcome || "win";
+      $("rvR").value = (t.review && typeof t.review.r==="number") ? String(t.review.r) : "";
+      $("rvLesson").value = t.review?.lesson || "";
+
+      const wrap = $("rvMistakes");
+      wrap.innerHTML = "";
+      const selected = new Set((t.review?.mistakes)||[]);
+      MISTAKE_TAGS.forEach(tag=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+        b.textContent = tag;
+        b.addEventListener("click", ()=>{
+          if(selected.has(tag)) selected.delete(tag); else selected.add(tag);
+          b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+          wrap.dataset.sel = JSON.stringify(Array.from(selected));
+        });
+        wrap.appendChild(b);
+      });
+      wrap.dataset.sel = JSON.stringify(Array.from(selected));
+
+      const g = $("rvImgs");
+      g.innerHTML = "";
+      const arr = (t.attachments||[]);
+      if(!arr.length) g.innerHTML = `<div class="text-sm muted2">No images found.</div>`;
+      else arr.forEach(a=>{
+        const link=document.createElement("a");
+        link.href=a.url||"#";
+        link.target="_blank";
+        link.rel="noopener";
+        const img=document.createElement("img");
+        img.src=a.url||"";
+        img.className="w-full aspect-square object-cover rounded-xl ring-soft";
+        link.appendChild(img);
+        g.appendChild(link);
+      });
+
+      openSheet("sheetReview");
+    }
+
+    function saveReview(){
+      const t = S.trades.find(x=> x.id===reviewTradeId);
+      if(!t) return;
+
+      const outcome = $("rvOutcome").value;
+      const rVal = parseFloat($("rvR").value);
+      const lesson = $("rvLesson").value.trim();
+      if(isNaN(rVal)){ $("rvHint").textContent = "Realized R required."; return; }
+      if(!lesson || lesson.length < 10){ $("rvHint").textContent = "One sentence lesson required."; return; }
+
+      const mistakes = JSON.parse($("rvMistakes").dataset.sel || "[]");
+
+      t.reviewed = true;
+      t.review = { outcome, r: rVal, mistakes, lesson, ts: Date.now() };
+      saveSmart(S);
+
+      closeSheets();
+      toast("Review saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      updatePendingBanner();
+      setTab("journal");
+    }
+
+    // -----------------------------
+    // Daily review
+    // -----------------------------
+
+    // Day Page (Daily Review + Day recap in one place)
+    const PROMPT_BY_MISTAKE = {
+      "FOMO": ["What triggered the chase?", "What was the correct patient entry?", "What rule stops this tomorrow?"],
+      "Revenge": ["What emotion showed up before the trade?", "What is your lockout after a loss?", "What will you do instead next time?"],
+      "Ignored core rule": ["Which core rule was broken?", "What did it cost?", "How will you force compliance next time?"],
+      "Ignored confluence": ["Which confluence did you ignore?", "What signal did you talk yourself out of?", "How will you reduce discretion here?"],
+      "Late entry": ["What caused the delay?", "What is the earliest acceptable trigger?", "What is your no-chase cutoff?"],
+      "Oversized": ["Why did size increase?", "What is your max size rule?", "How will you enforce it?"],
+      "Traded chop": ["What signs of chop were present?", "What is your no-trade chop rule?", "What will you do during chop instead?"],
+      "Moved stop (mental)": ["Why did you move the stop?", "What is the hard rule?", "How will you detach once in?"],
+      "No plan": ["What should the one-sentence plan have been?", "Which variable was missing?", "How will you prevent this tomorrow?"],
+      "Overtraded": ["Why did you keep clicking?", "What is your max trades rule?", "What will you do after trade #1 resolves?"]
+    };
+
+    function dayToISO(d){
+      const dt = (d instanceof Date) ? d : new Date(d);
+      const off = dt.getTimezoneOffset();
+      const local = new Date(dt.getTime() - off*60000);
+      return local.toISOString().slice(0,10);
+    }
+    function shiftISO(iso, delta){
+      const dt = new Date(iso + "T00:00:00");
+      dt.setDate(dt.getDate() + delta);
+      return dayToISO(dt);
+    }
+
+    function tradesForDay(iso){ return (S.trades||[]).filter(t=> t.date===iso); }
+
+    function statsForDay(iso){
+      const trades = tradesForDay(iso);
+      const reviewed = trades.filter(t=> t.reviewed && t.review);
+      const win = reviewed.filter(t=> t.review.outcome==="win").length;
+      const loss = reviewed.filter(t=> t.review.outcome==="loss").length;
+      const be = reviewed.filter(t=> t.review.outcome==="breakeven").length;
+      const avgR = reviewed.length ? reviewed.reduce((a,t)=> a + (t.review.r||0), 0) / reviewed.length : 0;
+      const pending = trades.filter(t=> !t.reviewed).length;
+      return { tradesCount: trades.length, reviewedCount: reviewed.length, pending, win, loss, be, avgR };
+    }
+
+    function mistakeCountsForDay(iso){
+      const counts = {};
+      tradesForDay(iso).forEach(t=>{
+        (t.review?.mistakes||[]).forEach(m=> counts[m] = (counts[m]||0) + 1);
+      });
+      return Object.entries(counts).sort((a,b)=> b[1]-a[1]);
+    }
+
+    function buildPromptForDay(iso){
+      const s = statsForDay(iso);
+      const ms = mistakeCountsForDay(iso).slice(0,3);
+
+      const lines = [];
+      lines.push(`Date: ${iso}`);
+      lines.push(`Trades: ${s.tradesCount} | Reviewed: ${s.reviewedCount} | Pending: ${s.pending}`);
+      if(s.reviewedCount) lines.push(`Win/Loss/BE: ${s.win}/${s.loss}/${s.be} | Avg R: ${s.avgR.toFixed(2)}`);
+      lines.push("");
+
+      if(!ms.length){
+        lines.push("Mistakes flagged: none.");
+        lines.push("");
+        lines.push("Prompt:");
+        lines.push("1) What did you do well today?");
+        lines.push("2) What was your best pass (a trade you did NOT take)?");
+        lines.push("3) What is one rule you will repeat tomorrow?");
+        return lines.join("\n");
+      }
+
+      lines.push("Top mistakes flagged:");
+      ms.forEach(([k,v])=> lines.push(`- ${k} (${v})`));
+      lines.push("");
+      lines.push("Prompt:");
+      ms.forEach(([k,_v], i)=>{
+        const qs = PROMPT_BY_MISTAKE[k] || ["What happened?", "Why did it happen?", "What will you change?"];
+        lines.push(`${i+1}) ${k}`);
+        qs.forEach(q=> lines.push(`   - ${q}`));
+      });
+      lines.push("");
+      lines.push("Close: one sentence rule you will execute tomorrow.");
+      return lines.join("\n");
+    }
+
+    function renderDayPage(iso){
+      const day = iso || todayISO();
+      $("dayDate").value = day;
+      $("dayPrompt").textContent = "";
+      $("dayReviewHint").textContent = "";
+
+      const s = statsForDay(day);
+      const reviewedHas = s.reviewedCount > 0;
+      $("dayStats").textContent = s.tradesCount
+        ? `Trades: ${s.tradesCount} | Reviewed: ${s.reviewedCount} | Pending: ${s.pending}` + (reviewedHas ? ` | Win/Loss/BE: ${s.win}/${s.loss}/${s.be} | Avg R: ${s.avgR.toFixed(2)}` : "")
+        : "No trades logged on this day.";
+
+      // Pending button (if any pending in whole app)
+      const p = pendingTrade();
+      $("btnDayOpenPending").classList.toggle("hidden", !p);
+      $("btnDayOpenPending").onclick = ()=> { if(p) openReviewSheet(p.id); };
+
+      // Mistakes chips
+      const ms = mistakeCountsForDay(day);
+      const mw = $("dayMistakes");
+      mw.innerHTML = "";
+      if(!ms.length){
+        mw.innerHTML = `<div class="text-sm muted2">No mistakes flagged (or no reviews yet).</div>`;
+      } else {
+        ms.slice(0,8).forEach(([k,v])=>{
+          const chip = document.createElement("div");
+          chip.className = "chip px-3 py-2 rounded-xl text-sm bg-white/5";
+          chip.textContent = `${k} (${v})`;
+          mw.appendChild(chip);
+        });
+      }
+
+      // Highlights
+      const highs = [];
+      if(s.tradesCount===0) highs.push("Clean slate day.");
+      if(s.pending>0) highs.push("You still have pending reviews. Finish them.");
+      if(s.reviewedCount>0){
+        highs.push(`Avg R: ${s.avgR.toFixed(2)} across reviewed trades.`);
+        if(s.loss>0 && ms.length) highs.push("Fix the top mistake first. One lever at a time.");
+      }
+      $("dayHighlights").textContent = highs.join("\n");
+
+      // Trades list
+      const wrap = $("dayTrades");
+      wrap.innerHTML = "";
+      const trades = tradesForDay(day).sort((a,b)=> (a.ts||0)-(b.ts||0));
+      if(!trades.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No trades to show.</div>`;
+      } else {
+        trades.forEach(t=>{
+          const reviewed = t.reviewed && t.review;
+          const badge = reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+          const res = reviewed ? `${t.review.outcome.toUpperCase()} • ${t.review.r.toFixed(2)}R` : "Result: -";
+          const mistakes = reviewed ? (t.review.mistakes||[]) : [];
+          const mistakeChips = mistakes.length ? mistakes.slice(0,6).map(x=> `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/5">${escapeHtml(x)}</span>`).join("") : `<span class="text-xs muted2">No mistakes logged.</span>`;
+          const lesson = reviewed ? (t.review.lesson||"") : "";
+
+          const imgs = (t.attachments||[]).slice(0,12).map(a=>{
+            const u = a.url || "#";
+            const alt = escapeAttr(a.name||"");
+            return `<a href="${escapeAttr(u)}" target="_blank" rel="noopener" class="block">
+                      <img src="${escapeAttr(u)}" alt="${alt}" class="w-full aspect-square object-cover rounded-xl ring-soft">
+                    </a>`;
+          }).join("");
+
+          const card = document.createElement("div");
+          card.className = "rounded-2xl bg-white/5 ring-soft p-4";
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+                <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • Risk $${escapeHtml(t.risk||"")} • Conf ${escapeHtml(t.confidence||"")}</div>
+                <div class="text-sm muted2 mt-1">${escapeHtml(res)}${t.preChecklist?.result ? " • Checklist: " + escapeHtml(t.preChecklist.result) : ""}</div>
+                <div class="text-xs muted2 mt-2">${badge}</div>
+              </div>
+              <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open="${t.id}">${reviewed ? "Edit" : "Review"}</button>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2">${mistakeChips}</div>
+            ${lesson ? `<div class="mt-3 rounded-2xl bg-white/3 ring-soft p-3 text-sm muted2"><span class="text-sm font-semibold text-zinc-100">Lesson:</span> ${escapeHtml(lesson)}</div>` : (reviewed ? "" : `<div class="mt-3 text-sm muted2">Review this trade to lock in the lesson.</div>`)}
+            <div class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2">${imgs || `<div class="text-sm muted2">No images.</div>`}</div>
+          `;
+          card.querySelector("[data-open]").addEventListener("click", ()=> openReviewSheet(t.id));
+          wrap.appendChild(card);
+        });
+      }
+
+      // Daily review text for day
+      $("dayReviewText").value = (S.dailyReviews?.[day]?.text) || "";
+    }
+
+    function openDayPage(day=null){
+      const iso = day || todayISO();
+      renderDayPage(iso);
+      openSheet("sheetDaily");
+    }
+
+    function saveDayReview(){
+      const day = $("dayDate").value || todayISO();
+      const text = ($("dayReviewText").value||"").trim();
+      if(text.length < 10){ $("dayReviewHint").textContent = "Write at least one sentence."; return; }
+      S.dailyReviews[day] = { text, ts: Date.now() };
+      saveSmart(S);
+      $("dayReviewHint").textContent = "Saved.";
+      toast("Daily review saved");
+      renderDailyPreview();
+      renderDailyHistory();
+      renderReviewDayHistory();
+      renderDayPage(day);
+    }
+
+    function generateDayPrompt(){
+      const day = $("dayDate").value || todayISO();
+      const p = buildPromptForDay(day);
+      $("dayPrompt").textContent = p;
+      toast("Prompt generated");
+      return p;
+    }
+
+    function insertDayPrompt(){
+      const p = $("dayPrompt").textContent || generateDayPrompt();
+      const box = $("dayReviewText");
+      const existing = (box.value||"").trim();
+      box.value = existing ? (existing + "\n\n" + p) : p;
+      toast("Prompt inserted");
+    }
+
+    // Daily history list (unchanged conceptually, now opens Day Page)
+    function renderDailyHistory(){
+      const wrap = $("drHistory"); if(!wrap) return;
+      const dr = S.dailyReviews || {};
+      const keys = Object.keys(dr).sort((a,b)=> (a<b?1:-1));
+      const recent = keys.slice(0,30);
+      wrap.innerHTML = recent.length ? "" : `<div class="text-sm muted2">No past daily reviews yet.</div>`;
+      recent.forEach(k=>{
+        const it = dr[k] || {};
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/3 ring-soft p-3";
+        const txt = escapeHtml(String(it.text||""));
+        row.innerHTML = `<div class="flex items-center justify-between gap-3">
+            <div class="text-sm font-semibold">${k}</div>
+            <button class="tap px-2 py-1 rounded-xl bg-white/5 text-xs" data-day-open="${k}">Open</button>
+          </div>
+          <div class="text-sm muted2 mt-1">${txt}</div>`;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll("[data-day-open]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openDayPage(btn.getAttribute("data-day-open")));
+      });
+    }
+
+    
+
+    function renderReviewDayHistory(){
+      const wrap = $("reviewDayHistory"); if(!wrap) return;
+      const dr = S.dailyReviews || {};
+      const keys = Object.keys(dr).sort((a,b)=> (a<b?1:-1));
+      const recent = keys.slice(0,30);
+      wrap.innerHTML = recent.length ? "" : `<div class="text-sm muted2">No past daily reviews yet.</div>`;
+      recent.forEach(k=>{
+        const it = dr[k] || {};
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/5 ring-soft p-4";
+        row.innerHTML = `<div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${k}</div>
+              <div class="text-sm muted2 mt-1">${escapeHtml(String(it.text||"").slice(0,140))}${(it.text||"").length>140?"…":""}</div>
+            </div>
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open-day="${k}">Open</button>
+          </div>`;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll("[data-open-day]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openDayPage(btn.getAttribute("data-open-day")));
+      });
+    }
+function renderDailyPreview(){
+      const el = $("dailyPreview");
+      if(!el) return;
+      const t = S.dailyReviews[todayISO()];
+      if(!t || !t.text){
+        el.innerHTML = `<div class="text-sm muted2">No daily review yet. Open Day page.</div>`;
+        return;
+      }
+      el.innerHTML = `<div class="rounded-2xl bg-white/5 ring-soft p-4">
+        <div class="text-sm font-semibold">${todayISO()}</div>
+        <div class="text-sm muted2 mt-2">${escapeHtml(t.text)}</div>
+        <div class="mt-3">
+          <button id="btnOpenTodayDay" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">Open Today’s Tape</button>
+        </div>
+      </div>`;
+      $("btnOpenTodayDay")?.addEventListener("click", ()=> openDayPage(todayISO()));
+    }
+
+    // -----------------------------
+    // Journal widgets
+    // -----------------------------
+    function updateGreeting(){
+      const h = new Date().getHours();
+      const g = h < 12 ? "Good morning" : (h < 18 ? "Good afternoon" : "Good evening");
+      $("greeting").textContent = g;
+    }
+
+    function renderTodayTrades(){
+      const wrap = $("todayTrades");
+      const today = todayISO();
+      const todayTrades = (S.trades||[]).filter(t=> t.date===today);
+      $("todayMeta").textContent = todayTrades.length ? `${todayTrades.length} trade(s) logged` : "No trades logged yet";
+      wrap.innerHTML = "";
+      if(!todayTrades.length){
+        wrap.innerHTML = `<div class="text-sm muted2">If you traded, log it now. Memory is a liar.</div>`;
+        return;
+      }
+      todayTrades.slice(0,10).forEach(t=>{
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-start justify-between gap-3";
+        const badge = t.reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+        row.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+            <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • Risk $${escapeHtml(t.risk||"")}</div>
+            <div class="text-xs muted2 mt-2">${badge}</div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open-review="${t.id}">Review</button>
+          </div>
+        `;
+        row.querySelector("[data-open-review]").addEventListener("click", ()=> openReviewSheet(t.id));
+        wrap.appendChild(row);
+      });
+    }
+
+    function updateCoreStatus(){
+      const pending = hasPendingReview();
+      const total = (S.trades||[]).length;
+      const reviewed = (S.trades||[]).filter(t=> t.reviewed).length;
+      $("coreStatus").textContent = pending ? "You are not done. Review your pending trade." : `Trades: ${total}. Reviewed: ${reviewed}.`;
+    }
+
+    // -----------------------------
+    // Review tab list
+    // -----------------------------
+    function renderReviewTab(){
+      if($("reviewDayPicker")) $("reviewDayPicker").value = todayISO();
+      renderReviewDayHistory();
+      const list = $("reviewTradeList");
+      list.innerHTML = "";
+      if(!S.trades.length){
+        $("reviewHeadline").textContent = "No trades yet";
+        $("reviewSub").textContent = "Log a trade in Journal.";
+        $("btnOpenReview").disabled = true;
+        return;
+      }
+
+      // pending first
+      const ordered = [...S.trades].sort((a,b)=>{
+        const ap = a.reviewed ? 1 : 0;
+        const bp = b.reviewed ? 1 : 0;
+        if(ap!==bp) return ap-bp;
+        return (b.ts||0)-(a.ts||0);
+      });
+
+      const latest = ordered[0];
+      $("reviewHeadline").textContent = `${latest.symbol} - ${latest.strategyName}`;
+      $("reviewSub").textContent = latest.reviewed ? `Reviewed - ${latest.review.r.toFixed(2)}R` : "Pending review";
+      $("btnOpenReview").disabled = false;
+      $("btnOpenReview").onclick = ()=> openReviewSheet(latest.id);
+
+      ordered.slice(0,30).forEach(t=>{
+        const div = document.createElement("button");
+        div.className = "tap w-full text-left rounded-2xl bg-white/5 hover:bg-white/10 ring-soft p-4";
+        const badge = t.reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+        const rtxt = (t.reviewed && t.review) ? `${t.review.r.toFixed(2)}R` : "-";
+        const ck = t.preChecklist?.result ? `Checklist: ${t.preChecklist.result}` : "";
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+              <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • ${t.date} • ${rtxt} ${ck ? " • " + escapeHtml(ck) : ""}</div>
+            </div>
+            <div>${badge}</div>
+          </div>
+        `;
+        div.addEventListener("click", ()=> openReviewSheet(t.id));
+        list.appendChild(div);
+      });
+    }
+
+    // -----------------------------
+    // Settings
+    // -----------------------------
+    function renderSettings(){
+      $("setName").value = S.profile?.name || "";
+      $("setNotifDaily").checked = !!S.notifs?.daily;
+      $("profileSaved").textContent = "";
+    }
+
+    $("btnSaveProfile")?.addEventListener("click", ()=>{
+      S.profile = S.profile || {};
+      S.profile.name = ($("setName").value || "").trim();
+      S.notifs = S.notifs || {};
+      S.notifs.daily = !!$("setNotifDaily").checked;
+      saveSmart(S);
+      $("profileSaved").textContent = "Saved.";
+      setTimeout(()=> $("profileSaved").textContent = "", 1400);
+      toast("Saved");
+    });
+
+    $("btnExport")?.addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(S, null, 2)], { type:"application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tradecheck_export.json";
+      a.click();
+      setTimeout(()=> URL.revokeObjectURL(url), 2500);
+    });
+
+    $("importFile")?.addEventListener("change", async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      try{
+        const txt = await f.text();
+        const obj = JSON.parse(txt);
+        S = { ...structuredClone(defaults), ...(obj||{}) };
+        ensureStarterStrategy();
+        saveSmart(S);
+        bootstrap();
+        toast("Imported");
+      }catch(err){
+        console.warn(err);
+        $("dataMsg").textContent = "Import failed. Invalid JSON.";
+      }finally{
+        e.target.value = "";
+      }
+    });
+
+    $("btnResetAll")?.addEventListener("click", ()=>{
+      if(!confirm("Reset all local data for this user?")) return;
+      S = structuredClone(defaults);
+      ensureStarterStrategy();
+      saveSmart(S);
+      bootstrap();
+      toast("Reset");
+    });
+
+    
+    // -----------------------------
+    // Onboarding (first run)
+    // -----------------------------
+    function populateOnboardStrategies(){
+      const sel = $("obStrategy");
+      if(!sel) return;
+      sel.innerHTML = "";
+      (S.strategies||[]).forEach(st=>{
+        const opt = document.createElement("option");
+        opt.value = st.id;
+        opt.textContent = st.name;
+        sel.appendChild(opt);
+      });
+      // default
+      if(S.settings?.defaultStrategyId){
+        sel.value = S.settings.defaultStrategyId;
+      } else if(S.strategies?.[0]?.id){
+        sel.value = S.strategies[0].id;
+      }
+    }
+
+    function openOnboarding(){
+      populateOnboardStrategies();
+      $("obName").value = S.settings?.displayName || "";
+      openSheet("sheetOnboard");
+    }
+
+    function saveOnboarding(){
+      const name = ($("obName").value||"").trim();
+      const stId = $("obStrategy").value || "";
+      if(name.length < 2){ $("obHint").textContent = "Add your name."; return; }
+      if(!stId){ $("obHint").textContent = "Pick a default strategy."; return; }
+      S.settings.displayName = name;
+      S.settings.defaultStrategyId = stId;
+      S.flags.onboarded = true;
+      saveSmart(S);
+      $("obHint").textContent = "Saved.";
+      toast("Onboarding complete");
+      closeAllSheets();
+      renderAll();
+    }
+
+    function maybeRunOnboarding(){
+      if(!S.flags) S.flags = {};
+      const hasStrats = (S.strategies||[]).length > 0;
+      if(!hasStrats) return; // strategies boot will run first
+      if(S.flags.onboarded) return;
+      openOnboarding();
+    }
+
+
+    // -----------------------------
+    // Wire buttons
+    // -----------------------------
+    $("btnStartChecklist")?.addEventListener("click", ()=>{
+      if(hasPendingReview()){ toast("Review pending trade first."); setTab("review"); return; }
+      buildChecklist();
+      openSheet("sheetChecklist");
+    });
+
+    $("btnProceedTrade")?.addEventListener("click", ()=>{
+      if(!lastChecklist){ $("ckProceedHint").textContent = "Run checklist first."; return; }
+      if(lastChecklist.result === "FAIL"){ $("ckProceedHint").textContent = "Blocked by checklist."; return; }
+      closeSheets();
+      openTradeSheet(true);
+    });
+
+    $("btnNewTrade")?.addEventListener("click", ()=> openTradeSheet(false));
+    $("btnNewTradeTop")?.addEventListener("click", ()=> openTradeSheet(false));
+    $("btnSaveTrade")?.addEventListener("click", saveTrade);
+
+    $("btnSaveReview")?.addEventListener("click", saveReview);
+
+    $("btnGoReviewFromBanner")?.addEventListener("click", ()=> setTab("review"));
+
+    $("btnOpenDay")?.addEventListener("click", ()=> openDayPage(todayISO()));
+    
+    
+
+    // Day page controls
+    $("btnDayPrev")?.addEventListener("click", ()=> openDayPage(shiftISO($("dayDate").value || todayISO(), -1)));
+    $("btnDayNext")?.addEventListener("click", ()=> openDayPage(shiftISO($("dayDate").value || todayISO(), +1)));
+    $("dayDate")?.addEventListener("change", ()=> openDayPage($("dayDate").value || todayISO()));
+    $("btnDayGenPrompt")?.addEventListener("click", generateDayPrompt);
+    $("btnDayInsertPrompt")?.addEventListener("click", insertDayPrompt);
+    $("btnDaySaveReview")?.addEventListener("click", saveDayReview);
+    $("btnDayNewTrade")?.addEventListener("click", ()=> { closeAllSheets(); openTradeSheet(); });
+
+    // Onboarding
+    $("btnOnboardSave")?.addEventListener("click", saveOnboarding);
+
+
+    // Review tab shortcuts
+    $("btnOpenDayFromReview")?.addEventListener("click", ()=> openDayPage($("reviewDayPicker")?.value || todayISO()));
+    $("btnOpenTodayDayFromReview")?.addEventListener("click", ()=> openDayPage(todayISO()));
+        $("reviewDayPicker")?.addEventListener("change", ()=> openDayPage($("reviewDayPicker").value || todayISO()));
+// -----------------------------
+    // Bootstrap
+    // -----------------------------
+    function bootstrap(){
+      updateGreeting();
+      ensureStarterStrategy();
+      syncStrategySelects();
+      renderStrategies();
+      renderTodayTrades();
+      renderReviewTab();
+      renderSettings();
+      renderDailyPreview();
+      renderDailyHistory();
+      if($("dayDate")) $("dayDate").value = todayISO();
+      maybeRunOnboarding();
+      updateCoreStatus();
+      updatePendingBanner();
+      setTab("journal");
+    }
+
+    // Start
+    bootSupabase();
+  
+</script>
+
+<script>
+// -----------------------------
+    // Supabase
+    // -----------------------------
+    const SUPABASE_URL = "https://hfnpqamhtxhhsrwmngtv.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_2im62kUUfZ_WLgaHuNmP7w_vFsuE0QV";
+    const STORAGE_BUCKET = "trade-screens";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentUserId = null;
+    let currentEmail = "";
+
+    const todayISO = () => (new Date()).toISOString().slice(0,10);
+    const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+    const defaults = {
+      flags: { onboarded: false },
+      settings: { displayName: "", defaultStrategyId: "" },
+      flags: { onboarded: false },
+      settings: { displayName: "", defaultStrategyId: "" },
+      profile: { name: "" },
+      notifs: { daily: true },
+      strategies: [],
+      trades: [],
+      dailyReviews: {}
+    };
+
+    const getLSKey = () => currentUserId ? `tradecheck.v4_${currentUserId}` : `tradecheck.v4_guest`;
+
+    function loadLocal(){
+      try{
+        const raw = localStorage.getItem(getLSKey());
+        if(!raw) return structuredClone(defaults);
+        const obj = JSON.parse(raw);
+        return { ...structuredClone(defaults), ...obj };
+      }catch(e){
+        return structuredClone(defaults);
+      }
+    }
+    function saveLocal(state){ localStorage.setItem(getLSKey(), JSON.stringify(state)); }
+
+    async function loadRemote(){
+      if(!currentUserId) return null;
+      const { data, error } = await sb.from("app_state").select("state").eq("user_id", currentUserId).maybeSingle();
+      if(error) throw error;
+      return data?.state || null;
+    }
+    async function saveRemote(state){
+      if(!currentUserId) return;
+      const payload = { user_id: currentUserId, state, updated_at: new Date().toISOString() };
+      const { error } = await sb.from("app_state").upsert(payload);
+      if(error) throw error;
+    }
+
+    let _remoteSaveTimer = null;
+    function saveSmart(state){
+      saveLocal(state);
+      if(!currentUserId) return;
+      clearTimeout(_remoteSaveTimer);
+      _remoteSaveTimer = setTimeout(async ()=>{
+        try{ await saveRemote(state); }catch(e){ console.warn("Remote save failed:", e); }
+      }, 500);
+    }
+
+    let S = structuredClone(defaults);
+
+    // -----------------------------
+    // UI helpers
+    // -----------------------------
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg){
+      $("toastText").textContent = msg;
+      $("toast").classList.remove("hidden");
+      setTimeout(()=> $("toast").classList.add("hidden"), 1600);
+    }
+
+    function clamp(n, a, b){ return Math.min(b, Math.max(a, n)); }
+
+    function escapeHtml(s){
+      return String(s||"").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+    function escapeAttr(s){ return escapeHtml(s).replace(/"/g, "&quot;"); }
+
+    function setAuthMessage(t){ const el = $("authMsg"); if(el) el.textContent = t || ""; }
+
+    // -----------------------------
+    // Auth
+    // -----------------------------
+    async function sbSignUp(email, password){
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogin(email, password){
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      return data;
+    }
+    async function sbLogout(){
+      const { error } = await sb.auth.signOut();
+      if(error) throw error;
+    }
+
+    async function loadUserState(){
+      let chosen = null;
+      try{
+        const remote = await loadRemote();
+        const local = loadLocal();
+        if(remote && typeof remote === "object"){
+          const rTrades = Array.isArray(remote.trades) ? remote.trades.length : 0;
+          const lTrades = Array.isArray(local.trades) ? local.trades.length : 0;
+          chosen = (rTrades >= lTrades) ? remote : local;
+        } else chosen = local;
+      }catch(e){
+        chosen = loadLocal();
+      }
+      S = { ...structuredClone(defaults), ...(chosen || {}) };
+      ensureStarterStrategy();
+      if(!Array.isArray(S.trades)) S.trades = [];
+      if(!Array.isArray(S.strategies)) S.strategies = [];
+      if(!S.dailyReviews || typeof S.dailyReviews !== "object") S.dailyReviews = {};
+      saveSmart(S);
+    }
+
+    async function bootSupabase(){
+      try{
+        const { data: { session } } = await sb.auth.getSession();
+        if(session?.user){
+          currentUserId = session.user.id;
+          currentEmail = session.user.email || "";
+          await loadUserState();
+          $("authGate").classList.add("hidden");
+          $("appShell").classList.remove("hidden");
+          bootstrap();
+        } else {
+          $("appShell").classList.add("hidden");
+          $("authGate").classList.remove("hidden");
+        }
+      }catch(e){
+        console.warn(e);
+        $("appShell").classList.add("hidden");
+        $("authGate").classList.remove("hidden");
+      }
+    }
+
+    $("btnLogin")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Logging in...");
+      try{
+        await sbLogin(email, pass);
+        setAuthMessage("");
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Login failed.");
+      }
+    });
+
+    $("btnSignup")?.addEventListener("click", async ()=>{
+      const email = ($("authEmail").value || "").trim();
+      const pass = $("authPass").value || "";
+      if(!email || !pass){ setAuthMessage("Email and password required."); return; }
+      setAuthMessage("Creating account...");
+      try{
+        await sbSignUp(email, pass);
+        setAuthMessage("Account created. Check inbox if confirmation is on.");
+        await bootSupabase();
+      }catch(e){
+        setAuthMessage(e?.message || "Sign up failed.");
+      }
+    });
+
+    $("btnLogout")?.addEventListener("click", async ()=>{
+      try{ await sbLogout(); }catch(e){ console.warn(e); }
+      currentUserId = null;
+      currentEmail = "";
+      S = structuredClone(defaults);
+      $("appShell").classList.add("hidden");
+      $("authGate").classList.remove("hidden");
+      toast("Logged out");
+    });
+
+    // -----------------------------
+    // Sheets
+    // -----------------------------
+    function openSheet(id){
+      $("sheetBackdrop").classList.remove("hidden");
+      $(id).classList.remove("hidden");
+      document.body.classList.add("overflow-hidden");
+    }
+    function closeSheets(){
+      $("sheetBackdrop").classList.add("hidden");
+      ["sheetChecklist","sheetTrade","sheetReview","sheetStrategy","sheetDaily"].forEach(id=> $(id).classList.add("hidden"));
+      document.body.classList.remove("overflow-hidden");
+    }
+    document.addEventListener("click",(e)=>{
+      const t = e.target;
+      if(t && t.getAttribute && t.getAttribute("data-close-sheet")==="1") closeSheets();
+    });
+    $("sheetBackdrop")?.addEventListener("click", closeSheets);
+
+    // -----------------------------
+    // Tabs
+    // -----------------------------
+    const views = { journal: $("viewJournal"), review: $("viewReview"), settings: $("viewSettings") };
+    function setTab(tab){
+      Object.keys(views).forEach(k=> views[k].classList.toggle("hidden", k!==tab));
+      document.querySelectorAll(".navbtn").forEach(b=> b.classList.toggle("active", b.dataset.tab===tab));
+      $("topTitle").textContent = tab === "journal" ? "Trade Journal" : (tab === "review" ? "Trade Review" : "Settings");
+      window.scrollTo({top:0, behavior:"smooth"});
+      if(tab==="review") renderReviewTab();
+      if(tab==="settings") renderSettings();
+    }
+    document.querySelectorAll(".navbtn").forEach(btn=> btn.addEventListener("click", ()=> setTab(btn.dataset.tab)));
+
+    // -----------------------------
+    // Strategy builder (tiered rules)
+    // -----------------------------
+    const TIER_LABEL = { filter: "Filter", confluence: "Confluence", core: "Core" };
+
+    function ensureStarterStrategy(){
+      if(S.strategies && S.strategies.length) return;
+      S.strategies = S.strategies || [];
+      S.strategies.push({
+        id: uid(),
+        name: "ORB (starter)",
+        rules: [
+          { id: uid(), text: "Opening range is clean (no chop)", tier: "filter" },
+          { id: uid(), text: "HTF bias aligned", tier: "confluence" },
+          { id: uid(), text: "No VWAP directly ahead", tier: "confluence" },
+          { id: uid(), text: "Risk size correct", tier: "core" },
+          { id: uid(), text: "Entry is at planned level", tier: "core" }
+        ]
+      });
+      saveSmart(S);
+    }
+
+    function renderStrategies(){
+      const wrap = $("strategyList");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+      if(!S.strategies.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No strategies yet. Add one.</div>`;
+        return;
+      }
+      S.strategies.forEach(st=>{
+        const counts = { filter: 0, confluence: 0, core: 0 };
+        (st.rules||[]).forEach(r=> { if(counts[r.tier]!=null) counts[r.tier]++; });
+        const div = document.createElement("div");
+        div.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-start justify-between gap-3";
+        div.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(st.name)}</div>
+            <div class="text-sm muted2">${counts.core} core, ${counts.confluence} confluence, ${counts.filter} filter</div>
+          </div>
+          <div class="flex gap-2">
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm" data-edit="${st.id}">Edit</button>
+            <button class="tap px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/20 ring-soft text-sm font-semibold" data-del="${st.id}">Delete</button>
+          </div>
+        `;
+        wrap.appendChild(div);
+      });
+
+      wrap.querySelectorAll("[data-del]").forEach(b=> b.addEventListener("click", ()=>{
+        const id = b.getAttribute("data-del");
+        if(S.strategies.length<=1){ toast("Keep at least 1 strategy."); return; }
+        S.strategies = S.strategies.filter(s=> s.id!==id);
+        saveSmart(S);
+        renderStrategies();
+        syncStrategySelects();
+        toast("Strategy deleted");
+      }));
+      wrap.querySelectorAll("[data-edit]").forEach(b=> b.addEventListener("click", ()=> openStrategyEditor(b.getAttribute("data-edit"))));
+    }
+
+    function addRuleRow(text="", tier="confluence", rid=null){
+      const row = document.createElement("div");
+      row.className = "grid grid-cols-12 gap-2";
+      const id = rid || uid();
+      row.dataset.rid = id;
+      const t = (tier==="filter"||tier==="confluence"||tier==="core") ? tier : "confluence";
+      row.innerHTML = `
+        <input class="col-span-8 bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25" placeholder="Rule (example: No VWAP ahead)" value="${escapeAttr(text)}">
+        <select class="col-span-3 bg-transparent border hair rounded-xl px-3 py-2 text-sm focus:border-white/25">
+          <option value="filter" ${t==="filter"?"selected":""}>Filter</option>
+          <option value="confluence" ${t==="confluence"?"selected":""}>Confluence</option>
+          <option value="core" ${t==="core"?"selected":""}>Core</option>
+        </select>
+        <button class="col-span-1 tap rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm">×</button>
+      `;
+      row.querySelector("button").addEventListener("click", ()=> row.remove());
+      $("stRules").appendChild(row);
+    }
+
+    function openStrategyEditor(id=null){
+      $("stHint").textContent = "";
+      $("stName").value = "";
+      $("stRules").innerHTML = "";
+      $("sheetStrategy").dataset.editId = id || "";
+      const st = id ? S.strategies.find(s=> s.id===id) : null;
+      if(st){
+        $("stName").value = st.name;
+        (st.rules||[]).forEach(r=> addRuleRow(r.text, r.tier, r.id));
+      } else {
+        addRuleRow("", "core");
+        addRuleRow("", "confluence");
+        addRuleRow("", "filter");
+      }
+      openSheet("sheetStrategy");
+    }
+
+    $("btnNewStrategy")?.addEventListener("click", ()=> openStrategyEditor(null));
+    $("btnAddRule")?.addEventListener("click", ()=> addRuleRow("", "confluence"));
+
+    $("btnSaveStrategy")?.addEventListener("click", ()=>{
+      const name = $("stName").value.trim();
+      if(!name){ $("stHint").textContent = "Name required."; return; }
+      const rows = Array.from($("stRules").children);
+      const rules = rows.map(r=>{
+        const inputs = r.querySelectorAll("input, select");
+        const text = (inputs[0].value||"").trim();
+        const tier = (inputs[1].value||"confluence");
+        return { id: r.dataset.rid, text, tier: (tier==="filter"||tier==="confluence"||tier==="core") ? tier : "confluence" };
+      }).filter(x=> x.text.length);
+
+      if(!rules.length){ $("stHint").textContent = "Add at least 1 rule."; return; }
+      const coreCount = rules.filter(r=> r.tier==="core").length;
+      if(coreCount===0){ $("stHint").textContent = "Add at least 1 Core rule."; return; }
+
+      const editId = $("sheetStrategy").dataset.editId || "";
+      if(editId){
+        const st = S.strategies.find(s=> s.id===editId);
+        if(st){ st.name = name; st.rules = rules; }
+        S.trades.forEach(t=> { if(t.strategyId===editId) t.strategyName = name; });
+        toast("Strategy updated");
+      } else {
+        S.strategies.push({ id: uid(), name, rules });
+        toast("Strategy saved");
+      }
+      saveSmart(S);
+      closeSheets();
+      renderStrategies();
+      syncStrategySelects();
+      updateCoreStatus();
+    });
+
+    function syncStrategySelects(){
+      const opts = S.strategies.map(s=> `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+      ["ckStrategy","tStrategy"].forEach(id=>{
+        const el = $(id);
+        if(!el) return;
+        el.innerHTML = opts;
+      });
+      if(S.strategies[0]){
+        if(!$("ckStrategy").value) $("ckStrategy").value = S.strategies[0].id;
+        if(!$("tStrategy").value) $("tStrategy").value = S.strategies[0].id;
+      }
+    }
+
+    // -----------------------------
+    // Checklist (tiered gating)
+    // -----------------------------
+    let lastChecklist = null; // { strategyId, confidence, result, details, answers }
+
+    function buildChecklist(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const wrap = $("ckRules");
+      wrap.innerHTML = "";
+      if(!st){
+        wrap.innerHTML = `<div class="text-sm muted2">Create a strategy first.</div>`;
+        updateChecklist();
+        return;
+      }
+
+      const sorted = [...(st.rules||[])].sort((a,b)=>{
+        const order = { core:0, confluence:1, filter:2 };
+        return (order[a.tier] ?? 9) - (order[b.tier] ?? 9);
+      });
+
+      sorted.forEach(r=>{
+        const row = document.createElement("label");
+        row.className = "tap flex items-center justify-between gap-3 rounded-2xl bg-white/5 ring-soft px-4 py-3";
+        row.innerHTML = `
+          <div class="text-sm">
+            ${escapeHtml(r.text)}
+            <span class="text-xs muted2">(${TIER_LABEL[r.tier] || "Confluence"})</span>
+          </div>
+          <input type="checkbox" class="accent-accent" data-rule="${r.id}">
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll("input[type=checkbox]").forEach(cb=> cb.addEventListener("change", updateChecklist));
+      updateChecklist();
+    }
+
+    function updateChecklist(){
+      const sid = $("ckStrategy").value;
+      const st = S.strategies.find(s=> s.id===sid);
+      const conf = clamp(parseInt($("ckConfidence").value||"0",10),0,100);
+
+      if(!st){
+        $("ckResult").textContent = "FAIL";
+        $("ckHint").textContent = "Create a strategy first.";
+        $("ckExplain").textContent = "";
+        lastChecklist = null;
+        return;
+      }
+
+      const boxes = Array.from($("ckRules").querySelectorAll("input[type=checkbox]"));
+      const answers = {};
+      boxes.forEach(b=> answers[b.dataset.rule] = !!b.checked);
+
+      const core = (st.rules||[]).filter(r=> r.tier==="core");
+      const confluence = (st.rules||[]).filter(r=> r.tier==="confluence");
+
+      const coreMissing = core.filter(r=> !answers[r.id]);
+      const confluenceChecked = confluence.filter(r=> answers[r.id]).length;
+
+      let result = "FAIL";
+      let hint = "Fix the checklist or pass.";
+      let explain = "";
+
+      if(coreMissing.length){
+        result = "FAIL";
+        hint = "Core not met. Do not trade.";
+        explain = "Unchecked core: " + coreMissing.map(r=> r.text).slice(0,3).join(" | ") + (coreMissing.length>3 ? " ..." : "");
+      } else if(confluence.length && confluenceChecked < 1){
+        result = "WEAK";
+        hint = "Core met, confluence missing. Consider passing.";
+        explain = "Add at least one confluence for a higher quality trade.";
+      } else {
+        result = "PASS";
+        hint = "Green light. Respect risk.";
+        explain = conf < 60 ? "Confidence is low. Trade only if you can explain why." : "Looks clean. Execute like a machine.";
+      }
+
+      $("ckResult").textContent = result;
+      $("ckHint").textContent = hint;
+      $("ckExplain").textContent = explain;
+
+      lastChecklist = { strategyId: sid, confidence: conf, result, details: { coreMissing: coreMissing.map(r=>r.id), confluenceChecked }, answers };
+      $("ckProceedHint").textContent = (result==="PASS") ? "Proceed to journal." : (result==="WEAK") ? "Proceed only if disciplined." : "Blocked by checklist.";
+    }
+
+    $("ckStrategy")?.addEventListener("change", buildChecklist);
+    $("ckConfidence")?.addEventListener("input", updateChecklist);
+
+    // -----------------------------
+    // Trade gating: force review
+    // -----------------------------
+    function hasPendingReview(){
+      return (S.trades||[]).some(t=> !t.reviewed);
+    }
+    function pendingTrade(){
+      return (S.trades||[]).find(t=> !t.reviewed) || null;
+    }
+    function updatePendingBanner(){
+      const pending = hasPendingReview();
+      $("pendingBanner").classList.toggle("hidden", !pending);
+      if(pending){
+        $("coreStatus").textContent = "Pending review detected. Review before logging another trade.";
+      }
+    }
+
+    function canLogTrade(){
+      if(hasPendingReview()) return { ok:false, reason:"Review pending trade before logging another." };
+      return { ok:true, reason:"" };
+    }
+
+    // -----------------------------
+    // Image upload
+    // -----------------------------
+    function safeFileName(name){
+      return String(name||"image").replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0,120);
+    }
+    function renderImagePreview(files){
+      const wrap = $("tImgPreview");
+      if(!wrap) return;
+      wrap.innerHTML = "";
+      const arr = Array.from(files||[]);
+      arr.slice(0,12).forEach(f=>{
+        const url = URL.createObjectURL(f);
+        const img = document.createElement("img");
+        img.src = url;
+        img.className = "w-full aspect-square object-cover rounded-xl ring-soft";
+        img.onload = ()=> URL.revokeObjectURL(url);
+        wrap.appendChild(img);
+      });
+      if(arr.length > 12){
+        const more = document.createElement("div");
+        more.className = "rounded-xl ring-soft bg-white/5 grid place-items-center text-xs muted2";
+        more.textContent = "+" + (arr.length-12);
+        wrap.appendChild(more);
+      }
+    }
+
+    async function uploadTradeImages(tradeId, fileList){
+      const files = Array.from(fileList||[]);
+      const out = [];
+      for(const f of files){
+        const path = `${currentUserId}/${tradeId}/${Date.now()}_${safeFileName(f.name)}`;
+        const { error: upErr } = await sb.storage.from(STORAGE_BUCKET).upload(path, f, { upsert: false, contentType: f.type });
+        if(upErr) throw upErr;
+        const { data } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+        out.push({ path, url: data?.publicUrl || "", name: f.name, type: f.type, size: f.size });
+      }
+      return out;
+    }
+
+    // -----------------------------
+    // Trade logging
+    // -----------------------------
+    function openTradeSheet(prefillFromChecklist=true){
+      const gate = canLogTrade();
+      if(!gate.ok){ toast(gate.reason); setTab("review"); return; }
+
+      $("tradeHint").textContent = "";
+      $("tSymbol").value = "MNQ";
+      $("tSetup").value = "ORB";
+      $("tRisk").value = "100";
+      $("tNotes").value = "";
+      $("tConfidence").value = "";
+
+      if(prefillFromChecklist && lastChecklist){
+        $("tStrategy").value = lastChecklist.strategyId;
+        $("tConfidence").value = String(lastChecklist.confidence);
+        $("tScore").textContent = lastChecklist.result;
+        $("tGrade").textContent = "Checklist: " + lastChecklist.result;
+        $("tScoreMeta").textContent = "From your latest checklist";
+      } else {
+        $("tScore").textContent = "-";
+        $("tGrade").textContent = "-";
+        $("tScoreMeta").textContent = "Run checklist first for a snapshot";
+      }
+
+      $("tImgPreview").innerHTML = "";
+      $("tImages").value = "";
+      openSheet("sheetTrade");
+    }
+
+    $("tImages")?.addEventListener("change", (e)=> renderImagePreview(e.target.files));
+
+    async function saveTrade(){
+      const gate = canLogTrade();
+      if(!gate.ok){ $("tradeHint").textContent = gate.reason; return; }
+
+      const strategyId = $("tStrategy").value;
+      const st = S.strategies.find(s=> s.id===strategyId);
+      if(!st){ $("tradeHint").textContent = "Select a strategy."; return; }
+
+      const symbol = $("tSymbol").value.trim();
+      const setup = $("tSetup").value.trim();
+      const risk = $("tRisk").value.trim();
+      const confidence = clamp(parseInt($("tConfidence").value||"0",10),0,100);
+      const notes = $("tNotes").value.trim();
+      const files = $("tImages").files;
+
+      if(!symbol){ $("tradeHint").textContent = "Symbol required."; return; }
+      if(!notes || notes.length < 10){ $("tradeHint").textContent = "One sentence plan required."; return; }
+      if(!files || files.length < 1){ $("tradeHint").textContent = "At least one screenshot required."; return; }
+
+      $("tradeHint").textContent = "Uploading...";
+
+      const tId = uid();
+      let attachments = [];
+      try{
+        attachments = await uploadTradeImages(tId, files);
+      }catch(e){
+        console.warn(e);
+        $("tradeHint").textContent = "Upload failed. Check bucket policy and try again.";
+        return;
+      }
+
+      const pre = (lastChecklist && lastChecklist.strategyId === strategyId) ? structuredClone(lastChecklist) : null;
+
+      const t = {
+        id: tId,
+        ts: Date.now(),
+        date: todayISO(),
+        strategyId,
+        strategyName: st.name,
+        symbol,
+        setup,
+        risk,
+        confidence,
+        notes,
+        attachments,
+        preChecklist: pre,
+        reviewed: false,
+        review: null
+      };
+
+      S.trades.unshift(t);
+      saveSmart(S);
+
+      closeSheets();
+      toast("Trade saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      updatePendingBanner();
+      setTab("review");
+    }
+
+    // -----------------------------
+    // Review
+    // -----------------------------
+    const MISTAKE_TAGS = [
+      "FOMO", "Revenge", "Ignored core rule", "Ignored confluence", "Late entry",
+      "Oversized", "Traded chop", "Moved stop (mental)", "No plan", "Overtraded"
+    ];
+    let reviewTradeId = null;
+
+    function openReviewSheet(tradeId){
+      const t = S.trades.find(x=> x.id===tradeId);
+      if(!t) return;
+
+      reviewTradeId = tradeId;
+      $("rvTitle").textContent = `${t.symbol} - ${t.strategyName}`;
+      $("rvHint").textContent = "";
+
+      $("rvOutcome").value = t.review?.outcome || "win";
+      $("rvR").value = (t.review && typeof t.review.r==="number") ? String(t.review.r) : "";
+      $("rvLesson").value = t.review?.lesson || "";
+
+      const wrap = $("rvMistakes");
+      wrap.innerHTML = "";
+      const selected = new Set((t.review?.mistakes)||[]);
+      MISTAKE_TAGS.forEach(tag=>{
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+        b.textContent = tag;
+        b.addEventListener("click", ()=>{
+          if(selected.has(tag)) selected.delete(tag); else selected.add(tag);
+          b.className = "tap px-3 py-2 rounded-xl text-sm chip " + (selected.has(tag) ? "bg-white/10" : "bg-white/5 hover:bg-white/10");
+          wrap.dataset.sel = JSON.stringify(Array.from(selected));
+        });
+        wrap.appendChild(b);
+      });
+      wrap.dataset.sel = JSON.stringify(Array.from(selected));
+
+      const g = $("rvImgs");
+      g.innerHTML = "";
+      const arr = (t.attachments||[]);
+      if(!arr.length) g.innerHTML = `<div class="text-sm muted2">No images found.</div>`;
+      else arr.forEach(a=>{
+        const link=document.createElement("a");
+        link.href=a.url||"#";
+        link.target="_blank";
+        link.rel="noopener";
+        const img=document.createElement("img");
+        img.src=a.url||"";
+        img.className="w-full aspect-square object-cover rounded-xl ring-soft";
+        link.appendChild(img);
+        g.appendChild(link);
+      });
+
+      openSheet("sheetReview");
+    }
+
+    function saveReview(){
+      const t = S.trades.find(x=> x.id===reviewTradeId);
+      if(!t) return;
+
+      const outcome = $("rvOutcome").value;
+      const rVal = parseFloat($("rvR").value);
+      const lesson = $("rvLesson").value.trim();
+      if(isNaN(rVal)){ $("rvHint").textContent = "Realized R required."; return; }
+      if(!lesson || lesson.length < 10){ $("rvHint").textContent = "One sentence lesson required."; return; }
+
+      const mistakes = JSON.parse($("rvMistakes").dataset.sel || "[]");
+
+      t.reviewed = true;
+      t.review = { outcome, r: rVal, mistakes, lesson, ts: Date.now() };
+      saveSmart(S);
+
+      closeSheets();
+      toast("Review saved");
+      updateCoreStatus();
+      renderTodayTrades();
+      renderReviewTab();
+      updatePendingBanner();
+      setTab("journal");
+    }
+
+    // -----------------------------
+    // Daily review
+    // -----------------------------
+
+    // Day Page (Daily Review + Day recap in one place)
+    const PROMPT_BY_MISTAKE = {
+      "FOMO": ["What triggered the chase?", "What was the correct patient entry?", "What rule stops this tomorrow?"],
+      "Revenge": ["What emotion showed up before the trade?", "What is your lockout after a loss?", "What will you do instead next time?"],
+      "Ignored core rule": ["Which core rule was broken?", "What did it cost?", "How will you force compliance next time?"],
+      "Ignored confluence": ["Which confluence did you ignore?", "What signal did you talk yourself out of?", "How will you reduce discretion here?"],
+      "Late entry": ["What caused the delay?", "What is the earliest acceptable trigger?", "What is your no-chase cutoff?"],
+      "Oversized": ["Why did size increase?", "What is your max size rule?", "How will you enforce it?"],
+      "Traded chop": ["What signs of chop were present?", "What is your no-trade chop rule?", "What will you do during chop instead?"],
+      "Moved stop (mental)": ["Why did you move the stop?", "What is the hard rule?", "How will you detach once in?"],
+      "No plan": ["What should the one-sentence plan have been?", "Which variable was missing?", "How will you prevent this tomorrow?"],
+      "Overtraded": ["Why did you keep clicking?", "What is your max trades rule?", "What will you do after trade #1 resolves?"]
+    };
+
+    function dayToISO(d){
+      const dt = (d instanceof Date) ? d : new Date(d);
+      const off = dt.getTimezoneOffset();
+      const local = new Date(dt.getTime() - off*60000);
+      return local.toISOString().slice(0,10);
+    }
+    function shiftISO(iso, delta){
+      const dt = new Date(iso + "T00:00:00");
+      dt.setDate(dt.getDate() + delta);
+      return dayToISO(dt);
+    }
+
+    function tradesForDay(iso){ return (S.trades||[]).filter(t=> t.date===iso); }
+
+    function statsForDay(iso){
+      const trades = tradesForDay(iso);
+      const reviewed = trades.filter(t=> t.reviewed && t.review);
+      const win = reviewed.filter(t=> t.review.outcome==="win").length;
+      const loss = reviewed.filter(t=> t.review.outcome==="loss").length;
+      const be = reviewed.filter(t=> t.review.outcome==="breakeven").length;
+      const avgR = reviewed.length ? reviewed.reduce((a,t)=> a + (t.review.r||0), 0) / reviewed.length : 0;
+      const pending = trades.filter(t=> !t.reviewed).length;
+      return { tradesCount: trades.length, reviewedCount: reviewed.length, pending, win, loss, be, avgR };
+    }
+
+    function mistakeCountsForDay(iso){
+      const counts = {};
+      tradesForDay(iso).forEach(t=>{
+        (t.review?.mistakes||[]).forEach(m=> counts[m] = (counts[m]||0) + 1);
+      });
+      return Object.entries(counts).sort((a,b)=> b[1]-a[1]);
+    }
+
+    function buildPromptForDay(iso){
+      const s = statsForDay(iso);
+      const ms = mistakeCountsForDay(iso).slice(0,3);
+
+      const lines = [];
+      lines.push(`Date: ${iso}`);
+      lines.push(`Trades: ${s.tradesCount} | Reviewed: ${s.reviewedCount} | Pending: ${s.pending}`);
+      if(s.reviewedCount) lines.push(`Win/Loss/BE: ${s.win}/${s.loss}/${s.be} | Avg R: ${s.avgR.toFixed(2)}`);
+      lines.push("");
+
+      if(!ms.length){
+        lines.push("Mistakes flagged: none.");
+        lines.push("");
+        lines.push("Prompt:");
+        lines.push("1) What did you do well today?");
+        lines.push("2) What was your best pass (a trade you did NOT take)?");
+        lines.push("3) What is one rule you will repeat tomorrow?");
+        return lines.join("\n");
+      }
+
+      lines.push("Top mistakes flagged:");
+      ms.forEach(([k,v])=> lines.push(`- ${k} (${v})`));
+      lines.push("");
+      lines.push("Prompt:");
+      ms.forEach(([k,_v], i)=>{
+        const qs = PROMPT_BY_MISTAKE[k] || ["What happened?", "Why did it happen?", "What will you change?"];
+        lines.push(`${i+1}) ${k}`);
+        qs.forEach(q=> lines.push(`   - ${q}`));
+      });
+      lines.push("");
+      lines.push("Close: one sentence rule you will execute tomorrow.");
+      return lines.join("\n");
+    }
+
+    function renderDayPage(iso){
+      const day = iso || todayISO();
+      $("dayDate").value = day;
+      $("dayPrompt").textContent = "";
+      $("dayReviewHint").textContent = "";
+
+      const s = statsForDay(day);
+      const reviewedHas = s.reviewedCount > 0;
+      $("dayStats").textContent = s.tradesCount
+        ? `Trades: ${s.tradesCount} | Reviewed: ${s.reviewedCount} | Pending: ${s.pending}` + (reviewedHas ? ` | Win/Loss/BE: ${s.win}/${s.loss}/${s.be} | Avg R: ${s.avgR.toFixed(2)}` : "")
+        : "No trades logged on this day.";
+
+      // Pending button (if any pending in whole app)
+      const p = pendingTrade();
+      $("btnDayOpenPending").classList.toggle("hidden", !p);
+      $("btnDayOpenPending").onclick = ()=> { if(p) openReviewSheet(p.id); };
+
+      // Mistakes chips
+      const ms = mistakeCountsForDay(day);
+      const mw = $("dayMistakes");
+      mw.innerHTML = "";
+      if(!ms.length){
+        mw.innerHTML = `<div class="text-sm muted2">No mistakes flagged (or no reviews yet).</div>`;
+      } else {
+        ms.slice(0,8).forEach(([k,v])=>{
+          const chip = document.createElement("div");
+          chip.className = "chip px-3 py-2 rounded-xl text-sm bg-white/5";
+          chip.textContent = `${k} (${v})`;
+          mw.appendChild(chip);
+        });
+      }
+
+      // Highlights
+      const highs = [];
+      if(s.tradesCount===0) highs.push("Clean slate day.");
+      if(s.pending>0) highs.push("You still have pending reviews. Finish them.");
+      if(s.reviewedCount>0){
+        highs.push(`Avg R: ${s.avgR.toFixed(2)} across reviewed trades.`);
+        if(s.loss>0 && ms.length) highs.push("Fix the top mistake first. One lever at a time.");
+      }
+      $("dayHighlights").textContent = highs.join("\n");
+
+      // Trades list
+      const wrap = $("dayTrades");
+      wrap.innerHTML = "";
+      const trades = tradesForDay(day).sort((a,b)=> (a.ts||0)-(b.ts||0));
+      if(!trades.length){
+        wrap.innerHTML = `<div class="text-sm muted2">No trades to show.</div>`;
+      } else {
+        trades.forEach(t=>{
+          const reviewed = t.reviewed && t.review;
+          const badge = reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+          const res = reviewed ? `${t.review.outcome.toUpperCase()} • ${t.review.r.toFixed(2)}R` : "Result: -";
+          const mistakes = reviewed ? (t.review.mistakes||[]) : [];
+          const mistakeChips = mistakes.length ? mistakes.slice(0,6).map(x=> `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/5">${escapeHtml(x)}</span>`).join("") : `<span class="text-xs muted2">No mistakes logged.</span>`;
+          const lesson = reviewed ? (t.review.lesson||"") : "";
+
+          const imgs = (t.attachments||[]).slice(0,12).map(a=>{
+            const u = a.url || "#";
+            const alt = escapeAttr(a.name||"");
+            return `<a href="${escapeAttr(u)}" target="_blank" rel="noopener" class="block">
+                      <img src="${escapeAttr(u)}" alt="${alt}" class="w-full aspect-square object-cover rounded-xl ring-soft">
+                    </a>`;
+          }).join("");
+
+          const card = document.createElement("div");
+          card.className = "rounded-2xl bg-white/5 ring-soft p-4";
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+                <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • Risk $${escapeHtml(t.risk||"")} • Conf ${escapeHtml(t.confidence||"")}</div>
+                <div class="text-sm muted2 mt-1">${escapeHtml(res)}${t.preChecklist?.result ? " • Checklist: " + escapeHtml(t.preChecklist.result) : ""}</div>
+                <div class="text-xs muted2 mt-2">${badge}</div>
+              </div>
+              <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open="${t.id}">${reviewed ? "Edit" : "Review"}</button>
+            </div>
+
+            <div class="mt-3 flex flex-wrap gap-2">${mistakeChips}</div>
+            ${lesson ? `<div class="mt-3 rounded-2xl bg-white/3 ring-soft p-3 text-sm muted2"><span class="text-sm font-semibold text-zinc-100">Lesson:</span> ${escapeHtml(lesson)}</div>` : (reviewed ? "" : `<div class="mt-3 text-sm muted2">Review this trade to lock in the lesson.</div>`)}
+            <div class="mt-3 grid grid-cols-4 sm:grid-cols-6 gap-2">${imgs || `<div class="text-sm muted2">No images.</div>`}</div>
+          `;
+          card.querySelector("[data-open]").addEventListener("click", ()=> openReviewSheet(t.id));
+          wrap.appendChild(card);
+        });
+      }
+
+      // Daily review text for day
+      $("dayReviewText").value = (S.dailyReviews?.[day]?.text) || "";
+    }
+
+    function openDayPage(day=null){
+      const iso = day || todayISO();
+      renderDayPage(iso);
+      openSheet("sheetDaily");
+    }
+
+
+    // -----------------------------
+    // P&L Calendar (computed from reviewed trades)
+    // -----------------------------
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth(); // 0-11
+    let calSelectedISO = null;
+
+    function num(v){
+      const n = typeof v === "string" ? parseFloat(v) : (typeof v === "number" ? v : NaN);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function dayPnL(trades){
+      // Uses R * risk if available. If risk missing, uses R only (treat as "R units").
+      let sum = 0;
+      trades.forEach(t=>{
+        if(t.reviewed && t.review){
+          const r = num(t.review.r);
+          const risk = num(t.risk);
+          sum += (risk ? r * risk : r);
+        }
+      });
+      return sum;
+    }
+
+    function dayTags(trades){
+      const tags = {};
+      trades.forEach(t=>{
+        const st = t.strategyName || "";
+        if(st) tags[st] = (tags[st]||0) + 1;
+        (t.review?.mistakes||[]).forEach(m=> tags[m] = (tags[m]||0) + 1);
+        const res = t.review?.outcome;
+        if(res) tags[res.toUpperCase()] = (tags[res.toUpperCase()]||0) + 1;
+      });
+      return Object.entries(tags).sort((a,b)=> b[1]-a[1]).slice(0,12);
+    }
+
+    function monthLabel(y,m){
+      const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${names[m]} ${y}`;
+    }
+
+    function dateISOFromParts(y,m,d){
+      const dt = new Date(y, m, d);
+      return dayToISO(dt);
+    }
+
+    function renderCalendar(){
+      const grid = $("calGrid"); if(!grid) return;
+      $("calLabel").textContent = monthLabel(calYear, calMonth);
+      grid.innerHTML = "";
+
+      const first = new Date(calYear, calMonth, 1);
+      const startDow = first.getDay(); // 0=Sun
+      const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+      // leading blanks
+      for(let i=0;i<startDow;i++){
+        const cell = document.createElement("div");
+        cell.className = "rounded-2xl bg-white/0 ring-0 p-2 h-20";
+        grid.appendChild(cell);
+      }
+
+      for(let d=1; d<=daysInMonth; d++){
+        const iso = dateISOFromParts(calYear, calMonth, d);
+        const trades = tradesForDay(iso);
+        const pnl = dayPnL(trades);
+        const cnt = trades.length;
+
+        const isToday = iso === todayISO();
+        const isSel = iso === calSelectedISO;
+
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = `tap text-left rounded-2xl ring-soft p-2 h-20 w-full ${isSel ? "bg-accent/15" : "bg-white/5 hover:bg-white/10"}`;
+
+        const pnlTxt = cnt ? (pnl >= 0 ? `+$${pnl.toFixed(0)}` : `-$${Math.abs(pnl).toFixed(0)}`) : "";
+        const cntTxt = cnt ? `${cnt} trade${cnt===1?"":"s"}` : "";
+        cell.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-semibold">${d}${isToday ? " •" : ""}</div>
+            <div class="text-[11px] muted2">${cntTxt}</div>
+          </div>
+          <div class="mt-2 text-sm font-semibold">${escapeHtml(pnlTxt)}</div>
+          <div class="text-[11px] muted2 mt-1">${cnt ? "Tap" : ""}</div>
+        `;
+        cell.addEventListener("click", ()=> selectCalendarDay(iso));
+        grid.appendChild(cell);
+      }
+    }
+
+    function selectCalendarDay(iso){
+      calSelectedISO = iso;
+      renderCalendar();
+
+      const trades = tradesForDay(iso);
+      const pnl = dayPnL(trades);
+      const cnt = trades.length;
+      const tagWrap = $("calSelectedTags");
+      const meta = $("calSelectedMeta");
+      if(!meta || !tagWrap) return;
+
+      if(!cnt){
+        meta.textContent = `${iso}: no trades logged.`;
+        tagWrap.innerHTML = "";
+        return;
+      }
+
+      meta.textContent = `${iso}: ${cnt} trade${cnt===1?"":"s"} • P&L ${pnl>=0?"+":""}${riskIsMoneyMode() ? "$" : ""}${pnl.toFixed(2)}${riskIsMoneyMode() ? "" : "R"}. Tap again below to open Day page.`;
+
+      tagWrap.innerHTML = "";
+      dayTags(trades).forEach(([k,v])=>{
+        const chip = document.createElement("div");
+        chip.className = "chip px-3 py-2 rounded-xl text-sm bg-white/5";
+        chip.textContent = `${k} (${v})`;
+        chip.addEventListener("click", ()=> openDayPage(iso));
+        tagWrap.appendChild(chip);
+      });
+    }
+
+    function riskIsMoneyMode(){
+      // If any trade has numeric risk, assume money mode.
+      return (S.trades||[]).some(t=> Number.isFinite(parseFloat(t.risk)));
+    }
+
+    function saveDayReview(){
+      const day = $("dayDate").value || todayISO();
+      const text = ($("dayReviewText").value||"").trim();
+      if(text.length < 10){ $("dayReviewHint").textContent = "Write at least one sentence."; return; }
+      S.dailyReviews[day] = { text, ts: Date.now() };
+      saveSmart(S);
+      $("dayReviewHint").textContent = "Saved.";
+      toast("Daily review saved");
+      renderDailyPreview();
+      renderDailyHistory();
+      renderReviewDayHistory();
+      renderDayPage(day);
+    }
+
+    function generateDayPrompt(){
+      const day = $("dayDate").value || todayISO();
+      const p = buildPromptForDay(day);
+      $("dayPrompt").textContent = p;
+      toast("Prompt generated");
+      return p;
+    }
+
+    function insertDayPrompt(){
+      const p = $("dayPrompt").textContent || generateDayPrompt();
+      const box = $("dayReviewText");
+      const existing = (box.value||"").trim();
+      box.value = existing ? (existing + "\n\n" + p) : p;
+      toast("Prompt inserted");
+    }
+
+    // Daily history list (unchanged conceptually, now opens Day Page)
+    function renderDailyHistory(){
+      const wrap = $("drHistory"); if(!wrap) return;
+      const dr = S.dailyReviews || {};
+      const keys = Object.keys(dr).sort((a,b)=> (a<b?1:-1));
+      const recent = keys.slice(0,30);
+      wrap.innerHTML = recent.length ? "" : `<div class="text-sm muted2">No past daily reviews yet.</div>`;
+      recent.forEach(k=>{
+        const it = dr[k] || {};
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/3 ring-soft p-3";
+        const txt = escapeHtml(String(it.text||""));
+        row.innerHTML = `<div class="flex items-center justify-between gap-3">
+            <div class="text-sm font-semibold">${k}</div>
+            <button class="tap px-2 py-1 rounded-xl bg-white/5 text-xs" data-day-open="${k}">Open</button>
+          </div>
+          <div class="text-sm muted2 mt-1">${txt}</div>`;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll("[data-day-open]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openDayPage(btn.getAttribute("data-day-open")));
+      });
+    }
+
+    
+
+    function renderReviewDayHistory(){
+      const wrap = $("reviewDayHistory"); if(!wrap) return;
+      const dr = S.dailyReviews || {};
+      const keys = Object.keys(dr).sort((a,b)=> (a<b?1:-1));
+      const recent = keys.slice(0,30);
+      wrap.innerHTML = recent.length ? "" : `<div class="text-sm muted2">No past daily reviews yet.</div>`;
+      recent.forEach(k=>{
+        const it = dr[k] || {};
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/5 ring-soft p-4";
+        row.innerHTML = `<div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${k}</div>
+              <div class="text-sm muted2 mt-1">${escapeHtml(String(it.text||"").slice(0,140))}${(it.text||"").length>140?"…":""}</div>
+            </div>
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open-day="${k}">Open</button>
+          </div>`;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll("[data-open-day]").forEach(btn=>{
+        btn.addEventListener("click", ()=> openDayPage(btn.getAttribute("data-open-day")));
+      });
+    }
+function renderDailyPreview(){
+      const el = $("dailyPreview");
+      if(!el) return;
+      const t = S.dailyReviews[todayISO()];
+      if(!t || !t.text){
+        el.innerHTML = `<div class="text-sm muted2">No daily review yet. Open Day page.</div>`;
+        return;
+      }
+      el.innerHTML = `<div class="rounded-2xl bg-white/5 ring-soft p-4">
+        <div class="text-sm font-semibold">${todayISO()}</div>
+        <div class="text-sm muted2 mt-2">${escapeHtml(t.text)}</div>
+        <div class="mt-3">
+          <button id="btnOpenTodayDay" class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold">Open Today’s Tape</button>
+        </div>
+      </div>`;
+      $("btnOpenTodayDay")?.addEventListener("click", ()=> openDayPage(todayISO()));
+    }
+
+    // -----------------------------
+    // Journal widgets
+    // -----------------------------
+    function updateGreeting(){
+      const h = new Date().getHours();
+      const g = h < 12 ? "Good morning" : (h < 18 ? "Good afternoon" : "Good evening");
+      $("greeting").textContent = g;
+    }
+
+    function renderTodayTrades(){
+      const wrap = $("todayTrades");
+      const today = todayISO();
+      const todayTrades = (S.trades||[]).filter(t=> t.date===today);
+      $("todayMeta").textContent = todayTrades.length ? `${todayTrades.length} trade(s) logged` : "No trades logged yet";
+      wrap.innerHTML = "";
+      if(!todayTrades.length){
+        wrap.innerHTML = `<div class="text-sm muted2">If you traded, log it now. Memory is a liar.</div>`;
+        return;
+      }
+      todayTrades.slice(0,10).forEach(t=>{
+        const row = document.createElement("div");
+        row.className = "rounded-2xl bg-white/5 ring-soft p-4 flex items-start justify-between gap-3";
+        const badge = t.reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+        row.innerHTML = `
+          <div>
+            <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+            <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • Risk $${escapeHtml(t.risk||"")}</div>
+            <div class="text-xs muted2 mt-2">${badge}</div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <button class="tap px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 ring-soft text-sm font-semibold" data-open-review="${t.id}">Review</button>
+          </div>
+        `;
+        row.querySelector("[data-open-review]").addEventListener("click", ()=> openReviewSheet(t.id));
+        wrap.appendChild(row);
+      });
+    }
+
+    function updateCoreStatus(){
+      const pending = hasPendingReview();
+      const total = (S.trades||[]).length;
+      const reviewed = (S.trades||[]).filter(t=> t.reviewed).length;
+      $("coreStatus").textContent = pending ? "You are not done. Review your pending trade." : `Trades: ${total}. Reviewed: ${reviewed}.`;
+    }
+
+    // -----------------------------
+    // Review tab list
+    // -----------------------------
+    function renderReviewTab(){
+      if($("reviewDayPicker")) $("reviewDayPicker").value = todayISO();
+      renderReviewDayHistory();
+      const list = $("reviewTradeList");
+      list.innerHTML = "";
+      if(!S.trades.length){
+        $("reviewHeadline").textContent = "No trades yet";
+        $("reviewSub").textContent = "Log a trade in Journal.";
+        $("btnOpenReview").disabled = true;
+        return;
+      }
+
+      // pending first
+      const ordered = [...S.trades].sort((a,b)=>{
+        const ap = a.reviewed ? 1 : 0;
+        const bp = b.reviewed ? 1 : 0;
+        if(ap!==bp) return ap-bp;
+        return (b.ts||0)-(a.ts||0);
+      });
+
+      const latest = ordered[0];
+      $("reviewHeadline").textContent = `${latest.symbol} - ${latest.strategyName}`;
+      $("reviewSub").textContent = latest.reviewed ? `Reviewed - ${latest.review.r.toFixed(2)}R` : "Pending review";
+      $("btnOpenReview").disabled = false;
+      $("btnOpenReview").onclick = ()=> openReviewSheet(latest.id);
+
+      ordered.slice(0,30).forEach(t=>{
+        const div = document.createElement("button");
+        div.className = "tap w-full text-left rounded-2xl bg-white/5 hover:bg-white/10 ring-soft p-4";
+        const badge = t.reviewed ? `<span class="chip px-2 py-1 rounded-lg text-xs bg-white/10">Reviewed</span>` : `<span class="chip px-2 py-1 rounded-lg text-xs bg-red-500/10">Pending</span>`;
+        const rtxt = (t.reviewed && t.review) ? `${t.review.r.toFixed(2)}R` : "-";
+        const ck = t.preChecklist?.result ? `Checklist: ${t.preChecklist.result}` : "";
+        div.innerHTML = `
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">${escapeHtml(t.symbol)} <span class="text-sm muted2">• ${escapeHtml(t.strategyName)}</span></div>
+              <div class="text-sm muted2 mt-1">${escapeHtml(t.setup||"")} • ${t.date} • ${rtxt} ${ck ? " • " + escapeHtml(ck) : ""}</div>
+            </div>
+            <div>${badge}</div>
+          </div>
+        `;
+        div.addEventListener("click", ()=> openReviewSheet(t.id));
+        list.appendChild(div);
+      });
+    }
+
+    // -----------------------------
+    // Settings
+    // -----------------------------
+    function renderSettings(){
+      $("setName").value = S.profile?.name || "";
+      $("setNotifDaily").checked = !!S.notifs?.daily;
+      $("profileSaved").textContent = "";
+    }
+
+    $("btnSaveProfile")?.addEventListener("click", ()=>{
+      S.profile = S.profile || {};
+      S.profile.name = ($("setName").value || "").trim();
+      S.notifs = S.notifs || {};
+      S.notifs.daily = !!$("setNotifDaily").checked;
+      saveSmart(S);
+      $("profileSaved").textContent = "Saved.";
+      setTimeout(()=> $("profileSaved").textContent = "", 1400);
+      toast("Saved");
+    });
+
+    $("btnExport")?.addEventListener("click", ()=>{
+      const blob = new Blob([JSON.stringify(S, null, 2)], { type:"application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tradecheck_export.json";
+      a.click();
+      setTimeout(()=> URL.revokeObjectURL(url), 2500);
+    });
+
+    $("importFile")?.addEventListener("change", async (e)=>{
+      const f = e.target.files?.[0];
+      if(!f) return;
+      try{
+        const txt = await f.text();
+        const obj = JSON.parse(txt);
+        S = { ...structuredClone(defaults), ...(obj||{}) };
+        ensureStarterStrategy();
+        saveSmart(S);
+        bootstrap();
+        toast("Imported");
+      }catch(err){
+        console.warn(err);
+        $("dataMsg").textContent = "Import failed. Invalid JSON.";
+      }finally{
+        e.target.value = "";
+      }
+    });
+
+    $("btnResetAll")?.addEventListener("click", ()=>{
+      if(!confirm("Reset all local data for this user?")) return;
+      S = structuredClone(defaults);
+      ensureStarterStrategy();
+      saveSmart(S);
+      bootstrap();
+      toast("Reset");
+    });
+
+    
+    // -----------------------------
+    // Onboarding (first run)
+    // -----------------------------
+    function populateOnboardStrategies(){
+      const sel = $("obStrategy");
+      if(!sel) return;
+      sel.innerHTML = "";
+      (S.strategies||[]).forEach(st=>{
+        const opt = document.createElement("option");
+        opt.value = st.id;
+        opt.textContent = st.name;
+        sel.appendChild(opt);
+      });
+      // default
+      if(S.settings?.defaultStrategyId){
+        sel.value = S.settings.defaultStrategyId;
+      } else if(S.strategies?.[0]?.id){
+        sel.value = S.strategies[0].id;
+      }
+    }
+
+    function openOnboarding(){
+      populateOnboardStrategies();
+      $("obName").value = S.settings?.displayName || "";
+      openSheet("sheetOnboard");
+    }
+
+    function saveOnboarding(){
+      const name = ($("obName").value||"").trim();
+      const stId = $("obStrategy").value || "";
+      if(name.length < 2){ $("obHint").textContent = "Add your name."; return; }
+      if(!stId){ $("obHint").textContent = "Pick a default strategy."; return; }
+      S.settings.displayName = name;
+      S.settings.defaultStrategyId = stId;
+      S.flags.onboarded = true;
+      saveSmart(S);
+      $("obHint").textContent = "Saved.";
+      toast("Onboarding complete");
+      closeAllSheets();
+      renderAll();
+    }
+
+    function maybeRunOnboarding(){
+      if(!S.flags) S.flags = {};
+      const hasStrats = (S.strategies||[]).length > 0;
+      if(!hasStrats) return; // strategies boot will run first
+      if(S.flags.onboarded) return;
+      openOnboarding();
+    }
+
+
+    // -----------------------------
+    // Wire buttons
+    // -----------------------------
+    $("btnStartChecklist")?.addEventListener("click", ()=>{
+      if(hasPendingReview()){ toast("Review pending trade first."); setTab("review"); return; }
+      buildChecklist();
+      openSheet("sheetChecklist");
+    });
+
+    $("btnProceedTrade")?.addEventListener("click", ()=>{
+      if(!lastChecklist){ $("ckProceedHint").textContent = "Run checklist first."; return; }
+      if(lastChecklist.result === "FAIL"){ $("ckProceedHint").textContent = "Blocked by checklist."; return; }
+      closeSheets();
+      openTradeSheet(true);
+    });
+
+    $("btnNewTrade")?.addEventListener("click", ()=> openTradeSheet(false));
+    $("btnNewTradeTop")?.addEventListener("click", ()=> openTradeSheet(false));
+    $("btnSaveTrade")?.addEventListener("click", saveTrade);
+
+    $("btnSaveReview")?.addEventListener("click", saveReview);
+
+    $("btnGoReviewFromBanner")?.addEventListener("click", ()=> setTab("review"));
+
+    $("btnOpenDay")?.addEventListener("click", ()=> openDayPage(todayISO()));
+    
+    
+
+    // Day page controls
+    $("btnDayPrev")?.addEventListener("click", ()=> openDayPage(shiftISO($("dayDate").value || todayISO(), -1)));
+    $("btnDayNext")?.addEventListener("click", ()=> openDayPage(shiftISO($("dayDate").value || todayISO(), +1)));
+    $("dayDate")?.addEventListener("change", ()=> openDayPage($("dayDate").value || todayISO()));
+    $("btnDayGenPrompt")?.addEventListener("click", generateDayPrompt);
+    $("btnDayInsertPrompt")?.addEventListener("click", insertDayPrompt);
+    $("btnDaySaveReview")?.addEventListener("click", saveDayReview);
+    $("btnDayNewTrade")?.addEventListener("click", ()=> { closeAllSheets(); openTradeSheet(); });
+
+    // Onboarding
+    $("btnOnboardSave")?.addEventListener("click", saveOnboarding);
+
+
+    // Review tab shortcuts
+    $("btnOpenDayFromReview")?.addEventListener("click", ()=> openDayPage($("reviewDayPicker")?.value || todayISO()));
+    $("btnOpenTodayDayFromReview")?.addEventListener("click", ()=> openDayPage(todayISO()));
+    $("calPrev")?.addEventListener("click", ()=> { calMonth--; if(calMonth<0){ calMonth=11; calYear--; } renderCalendar(); });
+    $("calNext")?.addEventListener("click", ()=> { calMonth++; if(calMonth>11){ calMonth=0; calYear++; } renderCalendar(); });
+    // Initialize calendar selection to today
+    calYear = new Date().getFullYear(); calMonth = new Date().getMonth();
+    renderCalendar();
+    selectCalendarDay(todayISO());
+        $("reviewDayPicker")?.addEventListener("change", ()=> openDayPage($("reviewDayPicker").value || todayISO()));
+// -----------------------------
+    // Bootstrap
+    // -----------------------------
+    function bootstrap(){
+      updateGreeting();
+      ensureStarterStrategy();
+      syncStrategySelects();
+      renderStrategies();
+      renderTodayTrades();
+      renderReviewTab();
+      renderSettings();
+      renderDailyPreview();
+      renderDailyHistory();
+      if($("dayDate")) $("dayDate").value = todayISO();
+      maybeRunOnboarding();
+      updateCoreStatus();
+      updatePendingBanner();
+      setTab("journal");
+    }
+
+    // Start
+    bootSupabase();
+  
+</script>
+
+</body>
+</html>
